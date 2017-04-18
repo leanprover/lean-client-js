@@ -1,4 +1,4 @@
-import * as lean from './src/browser';
+import * as lean from './src';
 
 declare var window, document;
 

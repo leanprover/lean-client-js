@@ -21,4 +21,8 @@ module.exports = {
     },
     devServer: { contentBase: distDir },
     plugins: [new HtmlWebpackPlugin],
+    node: {
+        child_process: 'empty',
+        readline: 'empty',
+    },
 }
