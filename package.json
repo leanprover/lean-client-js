@@ -1,0 +1,25 @@
+{
+  "name": "lean-server-js",
+  "version": "1.0.0",
+  "description": "Interface to the Lean server",
+  "main": "lib/index.js",
+  "scripts": {
+    "compile": "tsc -watch -p ./"
+  },
+  "keywords": [],
+  "author": "Gabriel Ebner <gebner@gebner.org>",
+  "repository": { "type": "git", "url": "https://github.com/gebner/lean-server-js" },
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^6.0.69",
+    "babel-core": "^6.24.1",
+    "babel-loader": "^6.4.1",
+    "babel-preset-env": "^1.4.0",
+    "html-webpack-plugin": "^2.28.0",
+    "ts-loader": "^2.0.3",
+    "typescript": "^2.2.2",
+    "webpack": "^2.4.1",
+    "webpack-dev-server": "^2.4.2",
+    "worker-loader": "^0.8.0"
+  }
+}
