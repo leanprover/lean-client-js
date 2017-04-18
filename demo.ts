@@ -30,8 +30,10 @@ window.onload = () => {
         + 'check @nat.rec_on\n'
         + 'print "end of file!"\n';
 
-    server.sync({command: 'sync', file_name: 'test.lean', content: testfile});
+    server.sync({command: 'sync', file_name: 'test.lean', content: testfile})
+        .catch((err) => console.log(`error while syncing file: ${err}`));
 
     server.info({command: 'info', file_name: 'test.lean', line: 3, column: 0})
-        .then((res) => console.log(`got info: ${JSON.stringify(res)}`));
+        .then((res) => console.log(`got info: ${JSON.stringify(res)}`))
+        .catch((err) => console.log(`error while getting info: ${err}`));
 };
