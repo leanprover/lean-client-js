@@ -1,8 +1,8 @@
 export interface Transport {
-    connect(onMessageReceived: (any) => void): Connection;
+    connect(onMessageReceived: (jsonMsg: any) => void): Connection;
 }
 
 export interface Connection {
-    send(msg: any);
+    send(jsonMsg: any);
     close();
 }

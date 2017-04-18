@@ -4,8 +4,8 @@ import {Request, ErrorResponse, CommandResponse, SyncRequest, CompleteRequest, C
     CurrentTasksResponse, Message} from './commands';
 
 interface SentRequestInfo {
-    resolve: (CommandResponse) => void;
-    reject: (any) => void;
+    resolve: (res: CommandResponse) => void;
+    reject: (err: any) => void;
 }
 
 class SentRequestsMap { [seqNum: number]: SentRequestInfo }
@@ -17,13 +17,13 @@ export class Server {
     conn?: Connection;
     currentMessages: Message[];
     
-    onError: (any) => void;
-    onAllMessages: (AllMessagesResponse) => void;
-    onCurrentTasks: (CurrentTasksResponse) => void;
+    onError: (_: any) => void;
+    onAllMessages: (_: AllMessagesResponse) => void;
+    onCurrentTasks: (_: CurrentTasksResponse) => void;
 
-    constructor(transport: Transport, onError: (any) => void,
-            onAllMessages: (AllMessagesResponse) => void,
-            onCurrentTasks: (CurrentTasksResponse) => void) {
+    constructor(transport: Transport, onError: (_: any) => void,
+            onAllMessages: (res: AllMessagesResponse) => void,
+            onCurrentTasks: (res: CurrentTasksResponse) => void) {
         this.currentSeqNum = 0;
         this.onError = onError;
         this.onAllMessages = onAllMessages;

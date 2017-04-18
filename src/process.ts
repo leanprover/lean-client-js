@@ -6,7 +6,7 @@ export class ProcessTransport implements Transport {
     executablePath: string;
     workingDirectory: string;
     options: string[];
-    onStdErr: (string) => void;
+    onStdErr: (chunk: string) => void;
 
     private getEnv() {
         let env = Object.create(process.env);
@@ -16,14 +16,14 @@ export class ProcessTransport implements Transport {
         return env;
     }
     
-    constructor(executablePath: string, workingDirectory: string, options: string[], onStdErr: (string) => void) {
+    constructor(executablePath: string, workingDirectory: string, options: string[], onStdErr: (chunk: string) => void) {
         this.executablePath = executablePath || "lean";
         this.workingDirectory = workingDirectory;
         this.options = options;
         this.onStdErr = onStdErr;
     }
 
-    connect(onMessageReceived: (any) => void): Connection {
+    connect(onMessageReceived: (jsonMsg: any) => void): Connection {
         // Note: on Windows the PATH variable must be set since
         // the standard msys2 installation paths are not added to the
         // Windows Path by msys2. We could instead people to set the
@@ -37,7 +37,7 @@ export class ProcessTransport implements Transport {
 
         let process = child.spawn(this.executablePath, ["--server"].concat(this.options),
             { cwd: this.workingDirectory, env: this.getEnv() });
-        process.stderr.on('data', (chunk) => this.onStdErr(chunk));
+        process.stderr.on('data', (chunk) => this.onStdErr(chunk.toString()));
         readline.createInterface({
             'input': process.stdout,
             'terminal': false,

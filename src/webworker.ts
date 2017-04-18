@@ -9,7 +9,7 @@ export class WebWorkerTransport implements Transport {
         this.memoryMB = memoryMB || 256;
     }
 
-    connect(onMessageReceived: (any) => void): WebWorkerConnection {
+    connect(onMessageReceived: (jsonMsg: any) => void): WebWorkerConnection {
         let worker = new (require("worker-loader!./webworkerscript"));
         worker.postMessage({
             'command': 'start-webworker',
