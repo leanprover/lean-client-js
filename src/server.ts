@@ -78,14 +78,14 @@ export class Server {
             }
         } else if (msg.response == "all_messages") {
             let msg_ = msg as AllMessagesResponse;
-            this.currentMessages = msg_.messages;
+            this.currentMessages = msg_.msgs;
             this.onAllMessages(msg_);
         } else if (msg.response == "additional_message") {
             let msg_ = msg as AdditionalMessageResponse;
             this.currentMessages = this.currentMessages.concat([msg_.msg]);
             this.onAllMessages({
                 response: 'all_messages',
-                messages: this.currentMessages,
+                msgs: this.currentMessages,
             } as AllMessagesResponse);
         } else if (msg.reponse == "current_tasks") {
             this.onCurrentTasks(msg);

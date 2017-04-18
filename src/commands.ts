@@ -20,7 +20,7 @@ export interface Message {
 
 export interface AllMessagesResponse extends Response {
     response: "all_messages";
-    messages: Message[];
+    msgs: Message[];
 }
 
 // Only used in Lean < 3.1.1
