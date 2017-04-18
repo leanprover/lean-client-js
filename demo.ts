@@ -13,7 +13,10 @@ window.onload = () => {
         window.Worker ?
             new lean.WebWorkerTransport(leanJsFile) :
             new lean.BrowserInProcessTransport(leanJsFile);
-    let server = new lean.Server(transport, console.log, console.log, console.log);
+    let server = new lean.Server(transport,
+        (err) => console.log(`unrelated error: ${err}`),
+        (allMessages) => console.log('messages', allMessages.messages),
+        (currentTasks) => console.log('tasks:', currentTasks.tasks));
 
     (self as any).server = server; // allow debugging from the console
     

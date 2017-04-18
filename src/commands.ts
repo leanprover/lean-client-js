@@ -23,6 +23,12 @@ export interface AllMessagesResponse extends Response {
     messages: Message[];
 }
 
+// Only used in Lean < 3.1.1
+export interface AdditionalMessageResponse extends Response {
+    response: "additional_message";
+    msg: Message;
+}
+
 export interface Task {
     file_name: string;
     pos_line: number;
