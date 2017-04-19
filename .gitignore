@@ -2,3 +2,4 @@
 /lib
 .*.sw?
 /dist
+npm-debug.log

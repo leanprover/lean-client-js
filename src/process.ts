@@ -1,6 +1,6 @@
-import {Transport, Connection} from './transport';
 import * as child from 'child_process';
 import * as readline from 'readline';
+import {Connection, Transport} from './transport';
 
 export class ProcessTransport implements Transport {
     executablePath: string;
@@ -8,16 +8,9 @@ export class ProcessTransport implements Transport {
     options: string[];
     onStdErr: (chunk: string) => void;
 
-    private getEnv() {
-        let env = Object.create(process.env);
-        if (process.platform == 'win32') {
-            env.Path = `${env.Path};C:\\msys64\\mingw64\\bin;C:\\msys64\\usr\\local\\bin;C:\\msys64\\usr\\bin;C:\\msys64\\bin;C:\\msys64\\opt\\bin;`;
-        }
-        return env;
-    }
-    
-    constructor(executablePath: string, workingDirectory: string, options: string[], onStdErr: (chunk: string) => void) {
-        this.executablePath = executablePath || "lean";
+    constructor(executablePath: string, workingDirectory: string, options: string[],
+                onStdErr: (chunk: string) => void) {
+        this.executablePath = executablePath || 'lean';
         this.workingDirectory = workingDirectory;
         this.options = options;
         this.onStdErr = onStdErr;
@@ -35,21 +28,30 @@ export class ProcessTransport implements Transport {
         //
         // For now we just set the path with low priority and invoke the process.
 
-        let process = child.spawn(this.executablePath, ["--server"].concat(this.options),
+        const process = child.spawn(this.executablePath, ['--server'].concat(this.options),
             { cwd: this.workingDirectory, env: this.getEnv() });
         process.stderr.on('data', (chunk) => this.onStdErr(chunk.toString()));
         readline.createInterface({
-            'input': process.stdout,
-            'terminal': false,
+            input: process.stdout,
+            terminal: false,
         }).on('line', (line) => {
              try {
-                 onMessageReceived(JSON.parse(line))
+                 onMessageReceived(JSON.parse(line));
              } catch (e) {
-                 onMessageReceived({'response': 'error', 'message': `cannot parse: ${line}`})
+                 onMessageReceived({response: 'error', message: `cannot parse: ${line}`});
              }
         });
 
         return new ProcessConnection(process);
+    }
+
+    private getEnv() {
+        const env = Object.create(process.env);
+        if (process.platform === 'win32') {
+            env.Path = env.Path + ';C:\\msys64\\mingw64\\bin;C:\\msys64\\usr\\local\\bin;'
+            + 'C:\\msys64\\usr\\bin;C:\\msys64\\bin;C:\\msys64\\opt\\bin;';
+        }
+        return env;
     }
 }
 
@@ -61,7 +63,7 @@ export class ProcessConnection implements Connection {
     }
 
     send(msg: any) {
-        this.process.stdin.write(JSON.stringify(msg) + "\n");
+        this.process.stdin.write(JSON.stringify(msg) + '\n');
     }
 
     close() {

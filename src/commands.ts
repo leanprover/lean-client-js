@@ -7,7 +7,7 @@ export interface Response {
     response: string;
 }
 
-export type Severity = "information" | "warning" | "error";
+export type Severity = 'information' | 'warning' | 'error';
 
 export interface Message {
     file_name: string;
@@ -19,13 +19,13 @@ export interface Message {
 }
 
 export interface AllMessagesResponse extends Response {
-    response: "all_messages";
+    response: 'all_messages';
     msgs: Message[];
 }
 
 // Only used in Lean < 3.1.1
 export interface AdditionalMessageResponse extends Response {
-    response: "additional_message";
+    response: 'additional_message';
     msg: Message;
 }
 
@@ -39,31 +39,31 @@ export interface Task {
 }
 
 export interface CurrentTasksResponse extends Response {
-    response: "current_tasks";
+    response: 'current_tasks';
     is_running: boolean;
     cur_task?: Task;
     tasks: Task[];
 }
 
 export interface CommandResponse extends Response {
-    response: "ok";
+    response: 'ok';
     seq_num: number;
 }
 
 export interface ErrorResponse extends Response {
-    response: "error";
+    response: 'error';
     seq_num?: number;
     message: string;
 }
 
 export interface SyncRequest extends Request {
-    command: "sync";
+    command: 'sync';
     file_name: string;
     content: string;
 }
 
 export interface CompleteRequest extends Request {
-    command: "complete";
+    command: 'complete';
     file_name: string;
     line: number;
     column: number;
@@ -83,7 +83,7 @@ export interface CompleteResponse extends CommandResponse {
 }
 
 export interface InfoRequest extends Request {
-    command: "info";
+    command: 'info';
     file_name: string;
     line: number;
     column: number;
@@ -93,8 +93,8 @@ export interface InfoResponse extends CommandResponse {
     // TODO(gabriel)
 }
 
-export type CheckingMode = "nothing" | "visible-lines"
-    | "visible-lines-and-above" | "visible-files" | "open-files";
+export type CheckingMode = 'nothing' | 'visible-lines'
+    | 'visible-lines-and-above' | 'visible-files' | 'open-files';
 
 export interface RoiRange {
     begin_line: number;
@@ -104,18 +104,18 @@ export interface RoiRange {
 export interface FileRoi {
     file_name: string;
     ranges: RoiRange[];
-}    
+}
 
 export interface RoiRequest extends Request {
-    command: "roi";
+    command: 'roi';
     mode: CheckingMode;
     files: FileRoi[];
 }
 
 export interface SleepRequest extends Request {
-    command: "sleep";
+    command: 'sleep';
 }
 
 export interface LongSleepRequest extends Request {
-    command: "long_sleep";
+    command: 'long_sleep';
 }

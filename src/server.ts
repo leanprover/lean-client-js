@@ -1,7 +1,6 @@
-import {Transport, Connection} from './transport';
-import {Request, ErrorResponse, CommandResponse, SyncRequest, CompleteRequest, CompleteResponse,
-    InfoRequest, InfoResponse, AllMessagesResponse, AdditionalMessageResponse,
-    CurrentTasksResponse, Message} from './commands';
+import {AdditionalMessageResponse, AllMessagesResponse, CommandResponse, CompleteRequest, CompleteResponse,
+    CurrentTasksResponse, ErrorResponse, InfoRequest, InfoResponse, Message, Request, SyncRequest} from './commands';
+import {Connection, Transport} from './transport';
 
 interface SentRequestInfo {
     resolve: (res: CommandResponse) => void;
@@ -11,24 +10,24 @@ interface SentRequestInfo {
 class SentRequestsMap { [seqNum: number]: SentRequestInfo }
 
 export class Server {
-    currentSeqNum: number;
+    private currentSeqNum: number;
+    private transport: Transport;
+    private conn?: Connection;
+    private currentMessages: Message[];
     private sentRequests: SentRequestsMap;
-    transport: Transport;
-    conn?: Connection;
-    currentMessages: Message[];
-    
-    onError: (_: any) => void;
-    onAllMessages: (_: AllMessagesResponse) => void;
-    onCurrentTasks: (_: CurrentTasksResponse) => void;
+
+    private onError: (_: any) => void;
+    private onAllMessages: (_: AllMessagesResponse) => void;
+    private onCurrentTasks: (_: CurrentTasksResponse) => void;
 
     constructor(transport: Transport, onError: (_: any) => void,
-            onAllMessages: (res: AllMessagesResponse) => void,
-            onCurrentTasks: (res: CurrentTasksResponse) => void) {
+                onAllMessages: (res: AllMessagesResponse) => void,
+                onCurrentTasks: (res: CurrentTasksResponse) => void) {
         this.currentSeqNum = 0;
         this.onError = onError;
         this.onAllMessages = onAllMessages;
         this.onCurrentTasks = onCurrentTasks;
-        this.sentRequests = new SentRequestsMap;
+        this.sentRequests = new SentRequestsMap();
         this.transport = transport;
         this.currentMessages = [];
     }
@@ -45,8 +44,8 @@ export class Server {
 
     send(req: Request): Promise<CommandResponse> {
         req.seq_num = this.currentSeqNum++;
-        let promise = new Promise((resolve, reject) =>
-            this.sentRequests[req.seq_num] = { resolve: resolve, reject: reject });
+        const promise = new Promise((resolve, reject) =>
+            this.sentRequests[req.seq_num] = { resolve, reject });
         this.conn.send(req);
         return promise;
     }
@@ -64,30 +63,32 @@ export class Server {
     }
 
     close() {
-        if (this.conn) this.conn.close();
+        if (this.conn) {
+            this.conn.close();
+        }
     }
 
     private onMessage(msg: any) {
-        let reqInfo = this.sentRequests[msg.seq_num]; // undefined if msg.seq_num does not exist
+        const reqInfo = this.sentRequests[msg.seq_num]; // undefined if msg.seq_num does not exist
         if (reqInfo !== undefined) {
             delete this.sentRequests[msg.seq_num];
-            if (msg.response == 'ok') {
+            if (msg.response === 'ok') {
                 reqInfo.resolve(msg);
             } else {
                 reqInfo.reject(msg.message || msg);
             }
-        } else if (msg.response == "all_messages") {
-            let msg_ = msg as AllMessagesResponse;
-            this.currentMessages = msg_.msgs;
-            this.onAllMessages(msg_);
-        } else if (msg.response == "additional_message") {
-            let msg_ = msg as AdditionalMessageResponse;
-            this.currentMessages = this.currentMessages.concat([msg_.msg]);
+        } else if (msg.response === 'all_messages') {
+            const allMsgRes = msg as AllMessagesResponse;
+            this.currentMessages = allMsgRes.msgs;
+            this.onAllMessages(allMsgRes);
+        } else if (msg.response === 'additional_message') {
+            const addMsgRes = msg as AdditionalMessageResponse;
+            this.currentMessages = this.currentMessages.concat([addMsgRes.msg]);
             this.onAllMessages({
                 response: 'all_messages',
                 msgs: this.currentMessages,
             } as AllMessagesResponse);
-        } else if (msg.reponse == "current_tasks") {
+        } else if (msg.reponse === 'current_tasks') {
             this.onCurrentTasks(msg);
         } else {
             // unrelated error

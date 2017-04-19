@@ -1,4 +1,4 @@
-import {Transport, Connection} from './transport';
+import {Connection, Transport} from './transport';
 
 export class WebWorkerTransport implements Transport {
     leanJsFile: string;
@@ -10,11 +10,11 @@ export class WebWorkerTransport implements Transport {
     }
 
     connect(onMessageReceived: (jsonMsg: any) => void): WebWorkerConnection {
-        let worker = new (require("worker-loader!./webworkerscript"));
+        const worker = new (require('worker-loader!./webworkerscript'))();
         worker.postMessage({
-            'command': 'start-webworker',
-            'memory': this.memoryMB,
-            'leanJsFile': this.leanJsFile,
+            command: 'start-webworker',
+            memory: this.memoryMB,
+            leanJsFile: this.leanJsFile,
         });
         worker.onmessage = (e) => onMessageReceived(e.data);
         return new WebWorkerConnection(worker);

@@ -1,28 +1,29 @@
 import * as lean from './src';
 
-declare var window, document;
+declare const window;
+declare const document;
 
 window.onload = () => {
-    let p = document.createElement('p');
+    const p = document.createElement('p');
     p.innerText = 'Look at the output in the console.';
     document.body.appendChild(p);
 
-    let leanJsFile = 'https://leanprover.github.io/lean.js/lean3.js';
+    const leanJsFile = 'https://leanprover.github.io/lean.js/lean3.js';
 
-    let transport = 
+    const transport =
         window.Worker ?
             new lean.WebWorkerTransport(leanJsFile) :
             new lean.BrowserInProcessTransport(leanJsFile);
-    let server = new lean.Server(transport,
+    const server = new lean.Server(transport,
         (err) => console.log(`unrelated error: ${err}`),
         (allMessages) => console.log('messages', allMessages.msgs),
         (currentTasks) => console.log('tasks:', currentTasks.tasks));
 
     (self as any).server = server; // allow debugging from the console
-    
+
     server.connect();
 
-    let testfile = ''
+    const testfile = ''
         + 'variables p q r s : Prop\n'
         + 'theorem my_and_comm : p /\\ q <-> q /\\ p :=\n'
         + 'iff.intro\n'
