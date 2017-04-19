@@ -1,3 +1,5 @@
+import * as BrowserFS from 'browserfs';
+import {ErrorResponse} from './commands';
 import {Connection, Transport} from './transport';
 
 declare const Module: any;
@@ -5,9 +7,11 @@ declare const Module: any;
 export class InProcessTransport implements Transport {
     private loadJs: () => Promise<any>;
     private memoryMB: number;
+    private libraryZip: Promise<Buffer>;
 
-    constructor(loadJs: () => Promise<any>, memoryMB: number) {
+    constructor(loadJs: () => Promise<any>, libraryZip: Promise<Buffer>, memoryMB: number) {
         this.loadJs = loadJs;
+        this.libraryZip = libraryZip;
         this.memoryMB = memoryMB;
     }
 
@@ -34,10 +38,26 @@ export class InProcessTransport implements Transport {
 
         console.log('downloading lean...');
         const module = this.loadJs().then(() => {
+            if (this.libraryZip) {
+                return this.libraryZip.then((zipBuffer) => {
+                    const libraryFS = new BrowserFS.FileSystem.ZipFS(zipBuffer as any);
+                    BrowserFS.initialize(libraryFS);
+                    const BFS = new BrowserFS.EmscriptenFS();
+                    Module.FS.createFolder(Module.FS.root, 'library', true, true);
+                    Module.FS.mount(BFS, {root: '/'}, '/library');
+                });
+            }
+        }).then(() => {
             Module.lean_init();
             console.log('lean server initialized.');
             return Module;
         });
+
+        module.catch((err) =>
+            onMessageReceived({
+                response: 'error',
+                message: `could not start emscripten version of lean: ${err}`,
+            } as ErrorResponse));
 
         return new InProcessConnection(module);
     }
@@ -64,19 +84,40 @@ class InProcessConnection implements Connection {
     close() {}
 }
 
-// It seems that typescript cannot use the types for both DOM and webworkers...
-declare const document: any;
-declare const window: any;
+function waitForBody(): Promise<any> {
+    return new Promise((resolve, reject) => {
+        if (document.body) {
+            resolve();
+        } else {
+            window.onload = resolve;
+        }
+    });
+}
 
 export class BrowserInProcessTransport extends InProcessTransport {
-    constructor(leanJsFile: string, memoryMB?: number) {
-        super(() => new Promise((resolve, reject) => {
-            window.onload = () => {
-                const script = document.createElement('script');
-                script.onload = resolve;
-                script.src = leanJsFile;
-                document.body.appendChild(script);
-            };
-        }), memoryMB || 256);
+    constructor(leanJsFile: string, libraryZipFile: string, memoryMB?: number) {
+        super(() => waitForBody().then(() => new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.onload = resolve;
+            script.src = leanJsFile;
+            document.body.appendChild(script);
+        })), loadBufferFromURL(libraryZipFile), memoryMB || 256);
     }
+}
+
+export function loadBufferFromURL(url: string): Promise<Buffer> {
+    return new Promise<Buffer>((resolve, reject) => {
+        const req = new XMLHttpRequest();
+        req.responseType = 'arraybuffer';
+        req.open('GET', url);
+        req.onload = (e) => {
+            if (req.status === 200) {
+                resolve(new Buffer(req.response as ArrayBuffer));
+            } else {
+                reject(`could not fetch ${url}: http code ${req.status} ${req.statusText}`);
+            }
+        };
+        req.onerror = (e) => reject(e);
+        req.send();
+    });
 }

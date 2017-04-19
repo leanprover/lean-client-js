@@ -1,19 +1,17 @@
 import * as lean from './src';
 
-declare const window;
-declare const document;
-
 window.onload = () => {
     const p = document.createElement('p');
     p.innerText = 'Look at the output in the console.';
     document.body.appendChild(p);
 
     const leanJsFile = 'https://leanprover.github.io/lean.js/lean3.js';
+    const libraryZipFile = null;
 
     const transport =
-        window.Worker ?
-            new lean.WebWorkerTransport(leanJsFile) :
-            new lean.BrowserInProcessTransport(leanJsFile);
+        (window as any).Worker ?
+            new lean.WebWorkerTransport(leanJsFile, libraryZipFile) :
+            new lean.BrowserInProcessTransport(leanJsFile, libraryZipFile);
     const server = new lean.Server(transport,
         (err) => console.log(`unrelated error: ${err}`),
         (allMessages) => console.log('messages', allMessages.msgs),

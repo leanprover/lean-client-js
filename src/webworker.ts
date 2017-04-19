@@ -2,10 +2,12 @@ import {Connection, Transport} from './transport';
 
 export class WebWorkerTransport implements Transport {
     leanJsFile: string;
+    libraryZipFile: string;
     memoryMB: number;
 
-    constructor(leanJsFile: string, memoryMB?: number) {
+    constructor(leanJsFile: string, libraryZipFile: string, memoryMB?: number) {
         this.leanJsFile = leanJsFile;
+        this.libraryZipFile = libraryZipFile;
         this.memoryMB = memoryMB || 256;
     }
 
@@ -15,6 +17,7 @@ export class WebWorkerTransport implements Transport {
             command: 'start-webworker',
             memory: this.memoryMB,
             leanJsFile: this.leanJsFile,
+            libraryZipFile: this.libraryZipFile,
         });
         worker.onmessage = (e) => onMessageReceived(e.data);
         return new WebWorkerConnection(worker);
