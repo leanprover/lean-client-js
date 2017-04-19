@@ -1,6 +1,5 @@
 import * as BrowserFS from 'browserfs';
-import {ErrorResponse} from './commands';
-import {Connection, Transport} from './transport';
+import {Connection, ErrorResponse, Transport} from 'lean-client-js-core';
 
 declare const Module: any;
 
@@ -106,6 +105,9 @@ export class BrowserInProcessTransport extends InProcessTransport {
 }
 
 export function loadBufferFromURL(url: string): Promise<Buffer> {
+    if (!url) {
+        return null;
+    }
     return new Promise<Buffer>((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.responseType = 'arraybuffer';

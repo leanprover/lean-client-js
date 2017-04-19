@@ -1,6 +1,6 @@
-/node_modules
-/lib
+node_modules
+lib
 .*.sw?
 /dist
-npm-debug.log
+*-debug.log
 *.tgz

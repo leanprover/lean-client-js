@@ -1,5 +1,5 @@
+import {Connection} from 'lean-client-js-core';
 import {InProcessTransport, loadBufferFromURL} from './inprocess';
-import {Connection} from './transport';
 
 declare function importScripts(...urls: string[]): void;
 declare function postMessage(message: any, transfer?: any[]): void;

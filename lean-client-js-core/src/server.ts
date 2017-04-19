@@ -88,7 +88,7 @@ export class Server {
                 response: 'all_messages',
                 msgs: this.currentMessages,
             } as AllMessagesResponse);
-        } else if (msg.reponse === 'current_tasks') {
+        } else if (msg.response === 'current_tasks') {
             this.onCurrentTasks(msg);
         } else {
             // unrelated error

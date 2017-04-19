@@ -1,4 +1,4 @@
-import * as lean from './src/browser';
+import * as lean from './src';
 
 window.onload = () => {
     const p = document.createElement('p');

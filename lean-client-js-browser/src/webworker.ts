@@ -1,4 +1,4 @@
-import {Connection, Transport} from './transport';
+import {Connection, Transport} from 'lean-client-js-core';
 
 export class WebWorkerTransport implements Transport {
     leanJsFile: string;

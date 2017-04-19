@@ -1,6 +1,6 @@
 {
     "search.exclude": {
-        "lib": true,
-        "dist": true
+        "*/lib": true,
+        "*/dist": true
     }
 }

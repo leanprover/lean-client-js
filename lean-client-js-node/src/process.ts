@@ -1,6 +1,6 @@
 import * as child from 'child_process';
+import {Connection, Transport} from 'lean-client-js-core';
 import * as readline from 'readline';
-import {Connection, Transport} from './transport';
 
 export class ProcessTransport implements Transport {
     executablePath: string;
