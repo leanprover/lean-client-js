@@ -18,12 +18,12 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@types/dropboxjs": "0.0.29",
-    "@types/filesystem": "0.0.28",
     "@types/node": "^6.0.69",
     "browserfs": "^1.3.0"
   },
   "devDependencies": {
+    "@types/dropboxjs": "0.0.29",
+    "@types/filesystem": "0.0.28",
     "babel-core": "^6.24.1",
     "babel-loader": "^6.4.1",
     "babel-preset-env": "^1.4.0",
