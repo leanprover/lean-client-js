@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
+    "prepublish": "rm -r lib && tsc -p ./",
     "compile": "tsc -watch -p ./",
     "lint": "tslint -c tslint.json 'src/**/*.ts' demo.ts",
     "demo": "webpack-dev-server"

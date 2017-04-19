@@ -3,3 +3,4 @@
 .*.sw?
 /dist
 npm-debug.log
+lean-server-js*.tgz
