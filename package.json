@@ -1,5 +1,5 @@
 {
-  "name": "lean-server-js",
+  "name": "lean-client-js",
   "version": "1.0.0",
   "description": "Interface to the Lean server",
   "main": "lib/index.js",
@@ -14,7 +14,7 @@
   "author": "Gabriel Ebner <gebner@gebner.org>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gebner/lean-server-js"
+    "url": "https://github.com/gebner/lean-client-js"
   },
   "license": "Apache-2.0",
   "dependencies": {
