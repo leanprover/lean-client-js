@@ -3,6 +3,6 @@
 [Demo code](./demo.ts):
 ```
 npm install
-./node_modules/.bin/webpack-dev-server
+npm run demo
 ```
 And go to http://localhost:8080/

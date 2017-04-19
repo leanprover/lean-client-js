@@ -5,7 +5,8 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "compile": "tsc -watch -p ./"
+    "compile": "tsc -watch -p ./",
+    "demo": "webpack-dev-server"
   },
   "keywords": [],
   "author": "Gabriel Ebner <gebner@gebner.org>",
