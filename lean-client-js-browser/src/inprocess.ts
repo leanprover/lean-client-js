@@ -36,19 +36,20 @@ export class InProcessTransport implements Transport {
 
         Module.TOTAL_MEMORY = this.memoryMB * 1024 * 1024;
 
+        const emscriptenInitialized = new Promise((resolve, reject) => Module.onRuntimeInitialized = resolve);
+
         console.log('downloading lean...');
-        conn.module = this.loadJs().then(() => {
+        conn.module = Promise.all([this.loadJs(), emscriptenInitialized, this.libraryZip]).then((results) => {
             if (this.libraryZip) {
-                return this.libraryZip.then((zipBuffer) => {
-                    const libraryFS = new BrowserFS.FileSystem.ZipFS(zipBuffer as any);
-                    BrowserFS.initialize(libraryFS);
-                    const BFS = new BrowserFS.EmscriptenFS();
-                    Module.FS.createFolder(Module.FS.root, 'library', true, true);
-                    Module.FS.mount(BFS, {root: '/'}, '/library');
-                });
+                const zipBuffer = results[2];
+                const libraryFS = new BrowserFS.FileSystem.ZipFS(zipBuffer);
+                BrowserFS.initialize(libraryFS);
+                const BFS = new BrowserFS.EmscriptenFS();
+                Module.FS.createFolder(Module.FS.root, 'library', true, true);
+                Module.FS.mount(BFS, {root: '/'}, '/library');
             }
-        }).then(() => {
-            Module.lean_init();
+
+            (Module.lean_init || Module._lean_init)();
             console.log('lean server initialized.');
             return Module;
         });
@@ -75,12 +76,25 @@ class InProcessConnection implements Connection {
             const len = mod.lengthBytesUTF8(msg) + 1;
             const msgPtr = mod._malloc(len);
             mod.stringToUTF8(msg, msgPtr, len);
-            mod.lean_process_request(msgPtr);
+            (mod.lean_process_request || mod._lean_process_request)(msgPtr);
             mod._free(msgPtr);
         });
     }
 
     close() {}
+}
+
+export interface LeanJsUrls {
+    libraryZip?: string;
+
+    javascript?: string;
+
+    webassemblyWasm?: string;
+    webassemblyJs?: string;
+}
+
+export interface LeanJsOpts extends LeanJsUrls {
+    memoryMB?: number;
 }
 
 function waitForBody(): Promise<any> {
@@ -93,14 +107,25 @@ function waitForBody(): Promise<any> {
     });
 }
 
-export class BrowserInProcessTransport extends InProcessTransport {
-    constructor(leanJsFile: string, libraryZipFile: string, memoryMB?: number) {
-        super(() => waitForBody().then(() => new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.onload = resolve;
-            script.src = leanJsFile;
-            document.body.appendChild(script);
-        })), loadBufferFromURL(libraryZipFile), memoryMB || 256);
+export function loadJsBrowser(url: string): Promise<any> {
+    return waitForBody().then(() => new Promise<any>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.onload = resolve;
+        script.src = url;
+        document.body.appendChild(script);
+    }));
+}
+
+declare const WebAssembly;
+
+export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<any>): Promise<any> {
+    if (WebAssembly && urls.webassemblyJs && urls.webassemblyWasm) {
+        Module.wasmBinaryFile = urls.webassemblyWasm;
+        return loadJs(urls.webassemblyJs);
+    } else if (urls.javascript) {
+        return loadJs(urls.javascript);
+    } else {
+        throw new Error(`cannot load lean.js from urls in ${urls}`);
     }
 }
 
@@ -122,4 +147,10 @@ export function loadBufferFromURL(url: string): Promise<Buffer> {
         req.onerror = (e) => reject(e);
         req.send();
     });
+}
+
+export class BrowserInProcessTransport extends InProcessTransport {
+    constructor(opts: LeanJsOpts) {
+        super(() => loadJsOrWasm(opts, loadJsBrowser), loadBufferFromURL(opts.libraryZip), opts.memoryMB || 256);
+    }
 }

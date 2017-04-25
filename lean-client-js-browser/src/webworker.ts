@@ -1,30 +1,26 @@
 import {Connection, Event, Transport} from 'lean-client-js-core';
+import {LeanJsOpts} from './inprocess';
+import {Req, Res, StartWorkerReq, StderrRes} from './webworkertypes';
 
 export class WebWorkerTransport implements Transport {
-    leanJsFile: string;
-    libraryZipFile: string;
-    memoryMB: number;
+    opts: LeanJsOpts;
 
-    constructor(leanJsFile: string, libraryZipFile: string, memoryMB?: number) {
-        this.leanJsFile = leanJsFile;
-        this.libraryZipFile = libraryZipFile;
-        this.memoryMB = memoryMB || 256;
+    constructor(opts: LeanJsOpts) {
+        this.opts = opts;
     }
 
     connect(): WebWorkerConnection {
         const worker = new (require('worker-loader!./webworkerscript'))();
         worker.postMessage({
             command: 'start-webworker',
-            memory: this.memoryMB,
-            leanJsFile: this.leanJsFile,
-            libraryZipFile: this.libraryZipFile,
-        });
+            opts: this.opts,
+        } as StartWorkerReq);
         const conn = new WebWorkerConnection(worker);
         worker.onmessage = (e) => {
-            if (e.data.response === 'stderr') {
-                conn.stderr.fire(e.data.chunk);
-            } else {
-                conn.jsonMessage.fire(e.data);
+            const res = e.data as Res;
+            switch (res.response) {
+                case 'stderr': conn.stderr.fire((res as StderrRes).chunk); break;
+                default: conn.jsonMessage.fire(e.data);
             }
         };
         return conn;

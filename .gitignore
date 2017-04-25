@@ -1,6 +1,6 @@
 node_modules
 lib
 .*.sw?
-/dist
+/lean-client-js-browser/dist
 *-debug.log
 *.tgz
