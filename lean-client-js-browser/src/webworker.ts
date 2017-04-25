@@ -1,4 +1,4 @@
-import {Connection, Transport} from 'lean-client-js-core';
+import {Connection, Event, Transport} from 'lean-client-js-core';
 
 export class WebWorkerTransport implements Transport {
     leanJsFile: string;
@@ -11,7 +11,7 @@ export class WebWorkerTransport implements Transport {
         this.memoryMB = memoryMB || 256;
     }
 
-    connect(onMessageReceived: (jsonMsg: any) => void): WebWorkerConnection {
+    connect(): WebWorkerConnection {
         const worker = new (require('worker-loader!./webworkerscript'))();
         worker.postMessage({
             command: 'start-webworker',
@@ -19,16 +19,26 @@ export class WebWorkerTransport implements Transport {
             leanJsFile: this.leanJsFile,
             libraryZipFile: this.libraryZipFile,
         });
-        worker.onmessage = (e) => onMessageReceived(e.data);
-        return new WebWorkerConnection(worker);
+        const conn = new WebWorkerConnection(worker);
+        worker.onmessage = (e) => {
+            if (e.data.response === 'stderr') {
+                conn.stderr.fire(e.data.chunk);
+            } else {
+                conn.jsonMessage.fire(e.data);
+            }
+        };
+        return conn;
     }
 }
 
 export class WebWorkerConnection implements Connection {
+    stderr: Event<string> = new Event();
+    jsonMessage: Event<any> = new Event();
+
     worker: Worker;
 
     constructor(worker: Worker) {
-         this.worker = worker;
+        this.worker = worker;
     }
 
     send(msg: any) {

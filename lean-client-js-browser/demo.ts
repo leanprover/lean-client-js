@@ -12,10 +12,11 @@ window.onload = () => {
         (window as any).Worker ?
             new lean.WebWorkerTransport(leanJsFile, libraryZipFile) :
             new lean.BrowserInProcessTransport(leanJsFile, libraryZipFile);
-    const server = new lean.Server(transport,
-        (err) => console.log(`unrelated error: ${err}`),
-        (allMessages) => console.log('messages', allMessages.msgs),
-        (currentTasks) => console.log('tasks:', currentTasks.tasks));
+    const server = new lean.Server(transport);
+    server.error.on((err) => console.log('unrelated error:', err));
+    server.allMessages.on((allMessages) => console.log('messages:', allMessages.msgs));
+    server.tasks.on((currentTasks) => console.log('tasks:', currentTasks.tasks));
+    server.stderr.on((chunk) => console.log(`stderr output: ${chunk}`));
 
     (self as any).server = server; // allow debugging from the console
 
@@ -33,9 +34,9 @@ window.onload = () => {
         + 'print "end of file!"\n';
 
     server.sync({command: 'sync', file_name: 'test.lean', content: testfile})
-        .catch((err) => console.log(`error while syncing file: ${err}`));
+        .catch((err) => console.log('error while syncing file:', err));
 
     server.info({command: 'info', file_name: 'test.lean', line: 3, column: 0})
-        .then((res) => console.log(`got info: ${JSON.stringify(res)}`))
-        .catch((err) => console.log(`error while getting info: ${err}`));
+        .then((res) => console.log(`got info: ${res}`))
+        .catch((err) => console.log('error while getting info:', err));
 };

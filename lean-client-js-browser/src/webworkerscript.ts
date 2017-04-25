@@ -14,8 +14,9 @@ onmessage = (e) => {
 
         const loadJs = () => new Promise((resolve) => { importScripts(leanJsFile); resolve(); });
 
-        conn = new InProcessTransport(loadJs, loadBufferFromURL(libraryZipFile), memory)
-            .connect((msg) => postMessage(msg));
+        conn = new InProcessTransport(loadJs, loadBufferFromURL(libraryZipFile), memory).connect();
+        conn.jsonMessage.on((msg) => postMessage(msg));
+        conn.stderr.on((chunk) => postMessage({response: 'stderr', chunk}));
     } else if (conn) {
         conn.send(e.data);
     }

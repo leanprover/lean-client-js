@@ -1,5 +1,5 @@
 import * as BrowserFS from 'browserfs';
-import {Connection, ErrorResponse, Transport} from 'lean-client-js-core';
+import {Connection, ErrorResponse, Event, Transport} from 'lean-client-js-core';
 
 declare const Module: any;
 
@@ -14,7 +14,7 @@ export class InProcessTransport implements Transport {
         this.memoryMB = memoryMB;
     }
 
-    connect(onMessageReceived: (jsonMsg: any) => void): Connection {
+    connect(): Connection {
         if ((self as any).Module) {
             throw new Error('cannot use more than one instance of InProcessTransport');
         }
@@ -23,20 +23,21 @@ export class InProcessTransport implements Transport {
         Module.noExitRuntime = true;
         Module.preRun = [ () => console.log('starting lean...') ];
 
+        const conn = new InProcessConnection();
+
         Module.print = (text: string) => {
             try {
-                onMessageReceived(JSON.parse(text));
+                conn.jsonMessage.fire(JSON.parse(text));
             } catch (e) {
-                onMessageReceived({response: 'error', message: `Cannot parse: ${text}`});
+                conn.jsonMessage.fire({response: 'error', message: `Cannot parse: ${text}`});
             }
         };
-        Module.printErr = (text: string) =>
-            onMessageReceived({response: 'error', message: `stderr: ${text}`});
+        Module.printErr = (text: string) => conn.stderr.fire(text);
 
         Module.TOTAL_MEMORY = this.memoryMB * 1024 * 1024;
 
         console.log('downloading lean...');
-        const module = this.loadJs().then(() => {
+        conn.module = this.loadJs().then(() => {
             if (this.libraryZip) {
                 return this.libraryZip.then((zipBuffer) => {
                     const libraryFS = new BrowserFS.FileSystem.ZipFS(zipBuffer as any);
@@ -52,22 +53,21 @@ export class InProcessTransport implements Transport {
             return Module;
         });
 
-        module.catch((err) =>
-            onMessageReceived({
+        conn.module.catch((err) =>
+            conn.jsonMessage.fire({
                 response: 'error',
                 message: `could not start emscripten version of lean: ${err}`,
             } as ErrorResponse));
 
-        return new InProcessConnection(module);
+        return conn;
     }
 }
 
 class InProcessConnection implements Connection {
-    module: Promise<any>;
+    stderr: Event<string> = new Event();
+    jsonMessage: Event<any> = new Event();
 
-    constructor(module: Promise<any>) {
-        this.module = module;
-    }
+    module: Promise<any>;
 
     send(jsonMsg: any) {
         this.module.then((mod) => {

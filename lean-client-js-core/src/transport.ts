@@ -1,8 +1,13 @@
+import {Event} from './event';
+
 export interface Transport {
-    connect(onMessageReceived: (jsonMsg: any) => void): Connection;
+    connect(): Connection;
 }
 
 export interface Connection {
+    stderr: Event<string>;
+    jsonMessage: Event<any>;
+
     send(jsonMsg: any);
     close();
 }

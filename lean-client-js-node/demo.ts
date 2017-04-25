@@ -1,11 +1,11 @@
 import * as lean from './src';
 
-const transport = new lean.ProcessTransport('lean', '.', [],
-    (stderr) => console.log(`stderr: ${stderr}`));
-const server = new lean.Server(transport,
-    (err) => console.log('unrelated error:', err),
-    (allMessages) => console.log(`messages: ${JSON.stringify(allMessages.msgs)}`),
-    (currentTasks) => console.log(`tasks: ${JSON.stringify(currentTasks.tasks)}`));
+const transport = new lean.ProcessTransport('lean', '.', []);
+const server = new lean.Server(transport);
+server.error.on((err) => console.log('unrelated error:', err));
+server.allMessages.on((allMessages) => console.log('messages', allMessages.msgs));
+server.tasks.on((currentTasks) => console.log('tasks:', currentTasks.tasks));
+server.stderr.on((chunk) => console.log(`stderr output: ${chunk}`));
 
 server.connect();
 

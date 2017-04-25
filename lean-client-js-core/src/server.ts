@@ -1,5 +1,6 @@
 import {AdditionalMessageResponse, AllMessagesResponse, CommandResponse, CompleteRequest, CompleteResponse,
     CurrentTasksResponse, ErrorResponse, InfoRequest, InfoResponse, Message, Request, SyncRequest} from './commands';
+import {Event} from './event';
 import {Connection, Transport} from './transport';
 
 interface SentRequestInfo {
@@ -10,30 +11,25 @@ interface SentRequestInfo {
 class SentRequestsMap { [seqNum: number]: SentRequestInfo }
 
 export class Server {
-    private currentSeqNum: number;
+    error: Event<any> = new Event();
+    allMessages: Event<AllMessagesResponse> = new Event();
+    tasks: Event<CurrentTasksResponse> = new Event();
+    stderr: Event<string> = new Event();
+
+    private currentSeqNum: number = 0;
     private transport: Transport;
     private conn?: Connection;
-    private currentMessages: Message[];
-    private sentRequests: SentRequestsMap;
+    private currentMessages: Message[] = [];
+    private sentRequests: SentRequestsMap = new SentRequestsMap();
 
-    private onError: (_: any) => void;
-    private onAllMessages: (_: AllMessagesResponse) => void;
-    private onCurrentTasks: (_: CurrentTasksResponse) => void;
-
-    constructor(transport: Transport, onError: (_: any) => void,
-                onAllMessages: (res: AllMessagesResponse) => void,
-                onCurrentTasks: (res: CurrentTasksResponse) => void) {
-        this.currentSeqNum = 0;
-        this.onError = onError;
-        this.onAllMessages = onAllMessages;
-        this.onCurrentTasks = onCurrentTasks;
-        this.sentRequests = new SentRequestsMap();
+    constructor(transport: Transport) {
         this.transport = transport;
-        this.currentMessages = [];
     }
 
     connect() {
-        this.conn = this.transport.connect((msg) => this.onMessage(msg));
+        this.conn = this.transport.connect();
+        this.conn.jsonMessage.on((msg) => this.onMessage(msg));
+        this.conn.stderr.on((msg) => this.stderr.fire(msg));
     }
 
     // TODO(gabriel): restore roi & files on restart?
@@ -80,19 +76,19 @@ export class Server {
         } else if (msg.response === 'all_messages') {
             const allMsgRes = msg as AllMessagesResponse;
             this.currentMessages = allMsgRes.msgs;
-            this.onAllMessages(allMsgRes);
+            this.allMessages.fire(allMsgRes);
         } else if (msg.response === 'additional_message') {
             const addMsgRes = msg as AdditionalMessageResponse;
             this.currentMessages = this.currentMessages.concat([addMsgRes.msg]);
-            this.onAllMessages({
+            this.allMessages.fire({
                 response: 'all_messages',
                 msgs: this.currentMessages,
             } as AllMessagesResponse);
         } else if (msg.response === 'current_tasks') {
-            this.onCurrentTasks(msg);
+            this.tasks.fire(msg);
         } else {
             // unrelated error
-            this.onError(msg.message || msg);
+            this.error.fire(msg.message || msg);
         }
     }
 }

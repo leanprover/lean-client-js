@@ -1,22 +1,19 @@
 import * as child from 'child_process';
-import {Connection, Transport} from 'lean-client-js-core';
+import {Connection, Event, Transport} from 'lean-client-js-core';
 import * as readline from 'readline';
 
 export class ProcessTransport implements Transport {
     executablePath: string;
     workingDirectory: string;
     options: string[];
-    onStdErr: (chunk: string) => void;
 
-    constructor(executablePath: string, workingDirectory: string, options: string[],
-                onStdErr: (chunk: string) => void) {
+    constructor(executablePath: string, workingDirectory: string, options: string[]) {
         this.executablePath = executablePath || 'lean';
         this.workingDirectory = workingDirectory;
         this.options = options;
-        this.onStdErr = onStdErr;
     }
 
-    connect(onMessageReceived: (jsonMsg: any) => void): Connection {
+    connect(): Connection {
         // Note: on Windows the PATH variable must be set since
         // the standard msys2 installation paths are not added to the
         // Windows Path by msys2. We could instead people to set the
@@ -30,19 +27,21 @@ export class ProcessTransport implements Transport {
 
         const process = child.spawn(this.executablePath, ['--server'].concat(this.options),
             { cwd: this.workingDirectory, env: this.getEnv() });
-        process.stderr.on('data', (chunk) => this.onStdErr(chunk.toString()));
+        const conn = new ProcessConnection(process);
+
+        process.stderr.on('data', (chunk) => conn.stderr.fire(chunk.toString()));
         readline.createInterface({
             input: process.stdout,
             terminal: false,
         }).on('line', (line) => {
              try {
-                 onMessageReceived(JSON.parse(line));
+                 conn.jsonMessage.fire(JSON.parse(line));
              } catch (e) {
-                 onMessageReceived({response: 'error', message: `cannot parse: ${line}`});
+                 conn.jsonMessage.fire({response: 'error', message: `cannot parse: ${line}`});
              }
         });
 
-        return new ProcessConnection(process);
+        return conn;
     }
 
     private getEnv() {
@@ -56,6 +55,9 @@ export class ProcessTransport implements Transport {
 }
 
 export class ProcessConnection implements Connection {
+    stderr: Event<string> = new Event();
+    jsonMessage: Event<any> = new Event();
+
     process: child.ChildProcess;
 
     constructor(process: child.ChildProcess) {
