@@ -1,5 +1,5 @@
 import * as BrowserFS from 'browserfs';
-import {Connection, ErrorResponse, Event, Transport} from 'lean-client-js-core';
+import {Connection, ErrorResponse, Event, Transport, TransportError} from 'lean-client-js-core';
 
 declare const Module: any;
 
@@ -32,7 +32,7 @@ export class InProcessTransport implements Transport {
                 conn.jsonMessage.fire({response: 'error', message: `Cannot parse: ${text}`});
             }
         };
-        Module.printErr = (text: string) => conn.stderr.fire(text);
+        Module.printErr = (text: string) => conn.error.fire({error: 'stderr', chunk: text});
 
         Module.TOTAL_MEMORY = this.memoryMB * 1024 * 1024;
 
@@ -65,8 +65,9 @@ export class InProcessTransport implements Transport {
 }
 
 class InProcessConnection implements Connection {
-    stderr: Event<string> = new Event();
+    error: Event<TransportError> = new Event();
     jsonMessage: Event<any> = new Event();
+    alive: boolean = true;
 
     module: Promise<any>;
 

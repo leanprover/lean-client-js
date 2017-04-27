@@ -15,4 +15,8 @@ export class Event<E> {
             h(event);
         }
     }
+
+    dispose() {
+        this.handlers = [];
+    }
 }

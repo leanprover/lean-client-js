@@ -1,6 +1,6 @@
 import {Connection} from 'lean-client-js-core';
 import {InProcessTransport, loadBufferFromURL, loadJsOrWasm} from './inprocess';
-import {Req, Res, StartWorkerReq, StderrRes} from './webworkertypes';
+import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';
 
 declare function importScripts(...urls: string[]): void;
 declare function postMessage(message: any, transfer?: any[]): void;
@@ -18,7 +18,7 @@ onmessage = (e) => {
             conn = new InProcessTransport(() => loadJsOrWasm(opts, loadJs),
                 loadBufferFromURL(opts.libraryZip), opts.memoryMB || 256).connect();
             conn.jsonMessage.on((msg) => postMessage(msg));
-            conn.stderr.on((chunk) => postMessage({response: 'stderr', chunk}));
+            conn.error.on((error) => postMessage({response: 'webworker-error', error} as ErrorRes));
             break;
 
         default:

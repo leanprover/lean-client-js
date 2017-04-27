@@ -1,6 +1,6 @@
-import {Connection, Event, Transport} from 'lean-client-js-core';
+import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
 import {LeanJsOpts} from './inprocess';
-import {Req, Res, StartWorkerReq, StderrRes} from './webworkertypes';
+import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';
 
 export class WebWorkerTransport implements Transport {
     opts: LeanJsOpts;
@@ -19,8 +19,8 @@ export class WebWorkerTransport implements Transport {
         worker.onmessage = (e) => {
             const res = e.data as Res;
             switch (res.response) {
-                case 'stderr': conn.stderr.fire((res as StderrRes).chunk); break;
-                default: conn.jsonMessage.fire(e.data);
+                case 'error': conn.error.fire((res as ErrorRes).error); break;
+                default: conn.jsonMessage.fire(res);
             }
         };
         return conn;
@@ -28,8 +28,9 @@ export class WebWorkerTransport implements Transport {
 }
 
 export class WebWorkerConnection implements Connection {
-    stderr: Event<string> = new Event();
+    error: Event<TransportError> = new Event();
     jsonMessage: Event<any> = new Event();
+    alive: boolean = true;
 
     worker: Worker;
 
@@ -43,5 +44,6 @@ export class WebWorkerConnection implements Connection {
 
     dispose() {
         this.worker.terminate();
+        this.alive = false;
     }
 }

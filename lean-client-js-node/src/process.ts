@@ -1,5 +1,5 @@
 import * as child from 'child_process';
-import {Connection, Event, Transport} from 'lean-client-js-core';
+import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
 import * as readline from 'readline';
 
 export class ProcessTransport implements Transport {
@@ -29,7 +29,7 @@ export class ProcessTransport implements Transport {
             { cwd: this.workingDirectory, env: this.getEnv() });
         const conn = new ProcessConnection(process);
 
-        process.stderr.on('data', (chunk) => conn.stderr.fire(chunk.toString()));
+        process.stderr.on('data', (chunk) => conn.error.fire({error: 'stderr', chunk: chunk.toString()}));
         readline.createInterface({
             input: process.stdout,
             terminal: false,
@@ -37,8 +37,20 @@ export class ProcessTransport implements Transport {
              try {
                  conn.jsonMessage.fire(JSON.parse(line));
              } catch (e) {
-                 conn.jsonMessage.fire({response: 'error', message: `cannot parse: ${line}`});
+                 conn.error.fire({error: 'connect', message: `cannot parse: ${line}`});
              }
+        });
+
+        process.on('error', (e) => {
+            conn.alive = false;
+            conn.error.fire({error: 'connect', reason: 'process-startup',
+                message: `Unable to start the Lean server process: ${e}`});
+        });
+
+        process.on('exit', (code) => {
+            conn.alive = false;
+            conn.error.fire({error: 'connect', reason: 'process-exit',
+                message: `The Lean server has stopped with error code ${code}.`});
         });
 
         return conn;
@@ -55,10 +67,11 @@ export class ProcessTransport implements Transport {
 }
 
 export class ProcessConnection implements Connection {
-    stderr: Event<string> = new Event();
+    error: Event<TransportError> = new Event();
     jsonMessage: Event<any> = new Event();
 
     process: child.ChildProcess;
+    alive: boolean = true;
 
     constructor(process: child.ChildProcess) {
         this.process = process;
@@ -70,5 +83,7 @@ export class ProcessConnection implements Connection {
 
     dispose() {
         this.process.kill();
+        this.process.disconnect();
+        this.alive = false;
     }
 }

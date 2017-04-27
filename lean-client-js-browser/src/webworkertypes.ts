@@ -1,4 +1,4 @@
-import {Request, Response} from 'lean-client-js-core';
+import {Request, Response, TransportError} from 'lean-client-js-core';
 import {LeanJsOpts} from './inprocess';
 
 export interface StartWorkerReq {
@@ -8,9 +8,9 @@ export interface StartWorkerReq {
 
 export type Req = StartWorkerReq | Request;
 
-export interface StderrRes {
-    response: 'stderr';
-    chunk: string;
+export interface ErrorRes {
+    response: 'webworker-error';
+    error: TransportError;
 }
 
-export type Res = StderrRes | Response;
+export type Res = ErrorRes | Response;

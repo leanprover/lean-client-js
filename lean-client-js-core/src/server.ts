@@ -1,7 +1,7 @@
 import {AdditionalMessageResponse, AllMessagesResponse, CommandResponse, CompleteRequest, CompleteResponse,
     CurrentTasksResponse, ErrorResponse, InfoRequest, InfoResponse, Message, Request, SyncRequest} from './commands';
 import {Event} from './event';
-import {Connection, Transport} from './transport';
+import {Connection, Transport, TransportError} from './transport';
 
 interface SentRequestInfo {
     resolve: (res: CommandResponse) => void;
@@ -10,11 +10,17 @@ interface SentRequestInfo {
 
 class SentRequestsMap { [seqNum: number]: SentRequestInfo }
 
+export interface UnrelatedError {
+    error: 'unrelated';
+    message: string;
+}
+
+export type ServerError = TransportError | UnrelatedError;
+
 export class Server {
-    error: Event<any> = new Event();
+    error: Event<ServerError> = new Event();
     allMessages: Event<AllMessagesResponse> = new Event();
     tasks: Event<CurrentTasksResponse> = new Event();
-    stderr: Event<string> = new Event();
 
     private currentSeqNum: number = 0;
     private transport: Transport;
@@ -29,7 +35,7 @@ export class Server {
     connect() {
         this.conn = this.transport.connect();
         this.conn.jsonMessage.on((msg) => this.onMessage(msg));
-        this.conn.stderr.on((msg) => this.stderr.fire(msg));
+        this.conn.error.on((msg) => this.error.fire(msg));
     }
 
     // TODO(gabriel): restore roi & files on restart?
@@ -56,6 +62,10 @@ export class Server {
 
     complete(req: CompleteRequest): Promise<CompleteResponse> {
         return this.send(req);
+    }
+
+    alive(): boolean {
+        return this.conn && this.conn.alive;
     }
 
     dispose() {
@@ -88,7 +98,7 @@ export class Server {
             this.tasks.fire(msg);
         } else {
             // unrelated error
-            this.error.fire(msg.message || msg);
+            this.error.fire({error: 'unrelated', message: msg.message || JSON.stringify(msg)});
         }
     }
 }

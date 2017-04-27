@@ -18,10 +18,9 @@ window.onload = () => {
             new lean.WebWorkerTransport(opts) :
             new lean.BrowserInProcessTransport(opts);
     const server = new lean.Server(transport);
-    server.error.on((err) => console.log('unrelated error:', err));
+    server.error.on((err) => console.log('error:', err));
     server.allMessages.on((allMessages) => console.log('messages:', allMessages.msgs));
     server.tasks.on((currentTasks) => console.log('tasks:', currentTasks.tasks));
-    server.stderr.on((chunk) => console.log(`stderr output: ${chunk}`));
 
     (self as any).server = server; // allow debugging from the console
 
