@@ -81,7 +81,7 @@ class InProcessConnection implements Connection {
         });
     }
 
-    close() {}
+    dispose() {}
 }
 
 export interface LeanJsUrls {

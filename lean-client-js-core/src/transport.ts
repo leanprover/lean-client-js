@@ -9,5 +9,5 @@ export interface Connection {
     jsonMessage: Event<any>;
 
     send(jsonMsg: any);
-    close();
+    dispose();
 }

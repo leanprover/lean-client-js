@@ -41,7 +41,7 @@ export class WebWorkerConnection implements Connection {
         this.worker.postMessage(msg);
     }
 
-    close() {
+    dispose() {
         this.worker.terminate();
     }
 }

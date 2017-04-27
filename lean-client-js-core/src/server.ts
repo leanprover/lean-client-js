@@ -34,7 +34,7 @@ export class Server {
 
     // TODO(gabriel): restore roi & files on restart?
     restart() {
-        this.close();
+        this.dispose();
         this.connect();
     }
 
@@ -58,9 +58,9 @@ export class Server {
         return this.send(req);
     }
 
-    close() {
+    dispose() {
         if (this.conn) {
-            this.conn.close();
+            this.conn.dispose();
         }
     }
 

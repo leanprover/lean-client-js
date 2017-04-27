@@ -68,7 +68,7 @@ export class ProcessConnection implements Connection {
         this.process.stdin.write(JSON.stringify(msg) + '\n');
     }
 
-    close() {
+    dispose() {
         this.process.kill();
     }
 }

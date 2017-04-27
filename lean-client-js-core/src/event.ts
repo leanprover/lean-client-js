@@ -1,5 +1,5 @@
 export interface EventListenerHandle {
-    remove();
+    dispose();
 }
 
 export class Event<E> {
@@ -7,7 +7,7 @@ export class Event<E> {
 
     on(handler: (_: E) => any): EventListenerHandle {
         this.handlers.push(handler);
-        return { remove: () => { this.handlers = this.handlers.filter((h) => h !== handler); } };
+        return { dispose: () => { this.handlers = this.handlers.filter((h) => h !== handler); } };
     }
 
     fire(event: E) {
