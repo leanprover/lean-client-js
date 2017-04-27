@@ -1,5 +1,5 @@
 import * as BrowserFS from 'browserfs';
-import {Connection, ErrorResponse, Event, Transport, TransportError} from 'lean-client-js-core';
+import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
 
 declare const Module: any;
 
@@ -29,7 +29,7 @@ export class InProcessTransport implements Transport {
             try {
                 conn.jsonMessage.fire(JSON.parse(text));
             } catch (e) {
-                conn.jsonMessage.fire({response: 'error', message: `Cannot parse: ${text}`});
+                conn.error.fire({error: 'connect', message: `cannot parse: ${text}`});
             }
         };
         Module.printErr = (text: string) => conn.error.fire({error: 'stderr', chunk: text});
@@ -55,10 +55,10 @@ export class InProcessTransport implements Transport {
         });
 
         conn.module.catch((err) =>
-            conn.jsonMessage.fire({
-                response: 'error',
+            conn.error.fire({
+                error: 'connect',
                 message: `could not start emscripten version of lean: ${err}`,
-            } as ErrorResponse));
+            }));
 
         return conn;
     }
