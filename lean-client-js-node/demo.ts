@@ -19,12 +19,17 @@ const testfile = ''
     + '#check @nat.rec_on\n'
     + '#print "end of file!"\n';
 
-server.sync('test.lean', testfile)
-    .catch((err) => console.log(`error while syncing file: ${err}`));
+function demo(): Promise<any> {
+    server.sync('test.lean', testfile)
+        .catch((err) => console.log(`error while syncing file: ${err}`));
 
-server.send({command: 'sleep'});
+    server.send({command: 'sleep'});
 
-server.info('test.lean', 3, 0)
-    .then((res) => console.log(`got info: ${JSON.stringify(res)}`))
-    .catch((err) => console.log(`error while getting info: ${err}`))
-    .then(() => process.exit(0));
+    return server.info('test.lean', 3, 0)
+        .then((res) => console.log(`got info: ${JSON.stringify(res)}`))
+        .catch((err) => console.log(`error while getting info: ${err}`));
+}
+
+demo().then(() => server.restart())
+      .then(() => demo())
+      .then(() => process.exit(0));

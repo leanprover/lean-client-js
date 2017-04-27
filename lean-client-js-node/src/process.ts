@@ -25,7 +25,8 @@ export class ProcessTransport implements Transport {
         //
         // For now we just set the path with low priority and invoke the process.
 
-        const process = child.spawn(this.executablePath, ['--server'].concat(this.options),
+        const process = child.spawn(this.executablePath,
+            ['--server'].concat(this.options).concat([`*${this.workingDirectory}*`]),
             { cwd: this.workingDirectory, env: this.getEnv() });
         const conn = new ProcessConnection(process);
 
@@ -48,9 +49,11 @@ export class ProcessTransport implements Transport {
         });
 
         process.on('exit', (code) => {
-            conn.alive = false;
-            conn.error.fire({error: 'connect', reason: 'process-exit',
-                message: `The Lean server has stopped with error code ${code}.`});
+            if (conn.alive) {
+                conn.alive = false;
+                conn.error.fire({error: 'connect', reason: 'process-exit',
+                    message: `The Lean server has stopped with error code ${code}.`});
+            }
         });
 
         return conn;
@@ -82,8 +85,7 @@ export class ProcessConnection implements Connection {
     }
 
     dispose() {
-        this.process.kill();
-        this.process.disconnect();
         this.alive = false;
+        this.process.kill();
     }
 }
