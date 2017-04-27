@@ -54,7 +54,7 @@ export class Server {
         return this.send(req);
     }
 
-    complete(req: InfoRequest): Promise<CompleteResponse> {
+    complete(req: CompleteRequest): Promise<CompleteResponse> {
         return this.send(req);
     }
 
