@@ -1,5 +1,6 @@
-import {AdditionalMessageResponse, AllMessagesResponse, CommandResponse, CompleteRequest, CompleteResponse,
-    CurrentTasksResponse, ErrorResponse, InfoRequest, InfoResponse, Message, Request, SyncRequest} from './commands';
+import {AdditionalMessageResponse, AllMessagesResponse, CheckingMode, CommandResponse,
+    CompleteRequest, CompleteResponse, CurrentTasksResponse, ErrorResponse, FileRoi,
+    InfoRequest, InfoResponse, Message, Request, RoiRequest, SyncRequest} from './commands';
 import {Event} from './event';
 import {Connection, Transport, TransportError} from './transport';
 
@@ -8,7 +9,7 @@ interface SentRequestInfo {
     reject: (err: any) => void;
 }
 
-class SentRequestsMap { [seqNum: number]: SentRequestInfo }
+type SentRequestsMap = Map<number, SentRequestInfo>;
 
 export interface UnrelatedError {
     error: 'unrelated';
@@ -26,7 +27,7 @@ export class Server {
     private transport: Transport;
     private conn?: Connection;
     private currentMessages: Message[] = [];
-    private sentRequests: SentRequestsMap = new SentRequestsMap();
+    private sentRequests: SentRequestsMap = new Map();
 
     constructor(transport: Transport) {
         this.transport = transport;
@@ -44,7 +45,16 @@ export class Server {
         this.connect();
     }
 
+    send(req: InfoRequest): Promise<InfoResponse>;
+    send(req: CompleteRequest): Promise<CompleteResponse>;
+    send(req: SyncRequest): Promise<CommandResponse>;
+    send(req: RoiRequest): Promise<CommandResponse>;
+    send(req: Request): Promise<CommandResponse>;
     send(req: Request): Promise<CommandResponse> {
+        if (!this.alive()) {
+            return new Promise((resolve, reject) => reject('server is not alive'));
+        }
+
         req.seq_num = this.currentSeqNum++;
         const promise = new Promise((resolve, reject) =>
             this.sentRequests[req.seq_num] = { resolve, reject });
@@ -52,16 +62,22 @@ export class Server {
         return promise;
     }
 
-    sync(req: SyncRequest): Promise<CommandResponse> {
-        return this.send(req);
+    info(file: string, line: number, column: number): Promise<any> {
+        return this.send({command: 'info', file_name: file, line, column});
     }
 
-    info(req: InfoRequest): Promise<InfoResponse> {
-        return this.send(req);
+    sync(file: string, contents: string): Promise<CommandResponse> {
+        return this.send({command: 'sync', file_name: file, content: contents});
     }
 
-    complete(req: CompleteRequest): Promise<CompleteResponse> {
-        return this.send(req);
+    complete(file: string, line: number, column: number,
+             skipCompletions?: boolean): Promise<CompleteResponse> {
+        return this.send({command: 'complete', file_name: file, line, column,
+            skip_completions: skipCompletions || false});
+    }
+
+    roi(mode: CheckingMode, files: FileRoi[]): Promise<CommandResponse> {
+        return this.send({command: 'roi', files, mode} as RoiRequest);
     }
 
     alive(): boolean {
@@ -71,13 +87,19 @@ export class Server {
     dispose() {
         if (this.conn) {
             this.conn.dispose();
+
+            this.sentRequests.forEach((info, seqNum) => info.reject('disposed'));
+            this.sentRequests = new Map();
+            this.currentSeqNum = 0;
+
+            this.conn = null;
         }
     }
 
     private onMessage(msg: any) {
         const reqInfo = this.sentRequests[msg.seq_num]; // undefined if msg.seq_num does not exist
         if (reqInfo !== undefined) {
-            delete this.sentRequests[msg.seq_num];
+            this.sentRequests.delete(msg.seq_num);
             if (msg.response === 'ok') {
                 reqInfo.resolve(msg);
             } else {
