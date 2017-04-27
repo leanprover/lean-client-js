@@ -48,11 +48,13 @@ export class ProcessTransport implements Transport {
                 message: `Unable to start the Lean server process: ${e}`});
         });
 
-        process.on('exit', (code) => {
+        process.on('exit', (code, signal) => {
             if (conn.alive) {
                 conn.alive = false;
-                conn.error.fire({error: 'connect', reason: 'process-exit',
-                    message: `The Lean server has stopped with error code ${code}.`});
+                const message = code ?
+                    `Server has stopped with error code ${code}.` :
+                    `Server has stopped due to signal ${signal}.`;
+                conn.error.fire({error: 'connect', reason: 'process-exit', message});
             }
         });
 
