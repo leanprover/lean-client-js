@@ -57,7 +57,7 @@ export class Server {
 
         req.seq_num = this.currentSeqNum++;
         const promise = new Promise((resolve, reject) =>
-            this.sentRequests[req.seq_num] = { resolve, reject });
+            this.sentRequests.set(req.seq_num, { resolve, reject }));
         this.conn.send(req);
         return promise;
     }
@@ -89,7 +89,7 @@ export class Server {
             this.conn.dispose();
 
             this.sentRequests.forEach((info, seqNum) => info.reject('disposed'));
-            this.sentRequests = new Map();
+            this.sentRequests.clear();
             this.currentSeqNum = 0;
 
             this.conn = null;
@@ -97,7 +97,7 @@ export class Server {
     }
 
     private onMessage(msg: any) {
-        const reqInfo = this.sentRequests[msg.seq_num]; // undefined if msg.seq_num does not exist
+        const reqInfo = this.sentRequests.get(msg.seq_num); // undefined if msg.seq_num does not exist
         if (reqInfo !== undefined) {
             this.sentRequests.delete(msg.seq_num);
             if (msg.response === 'ok') {
