@@ -24,14 +24,11 @@ export class Server {
     tasks: Event<CurrentTasksResponse> = new Event();
 
     private currentSeqNum: number = 0;
-    private transport: Transport;
     private conn?: Connection;
     private currentMessages: Message[] = [];
     private sentRequests: SentRequestsMap = new Map();
 
-    constructor(transport: Transport) {
-        this.transport = transport;
-    }
+    constructor(public transport: Transport) {}
 
     connect() {
         this.conn = this.transport.connect();

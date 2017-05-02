@@ -1,0 +1,26 @@
+{
+  "name": "lean-client-js-langserver",
+  "version": "1.0.0",
+  "description": "Language Server Protocol server for Lean",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "keywords": [],
+  "author": "Gabriel Ebner <gebner@gebner.org>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gebner/lean-client-js"
+  },
+  "scripts": {
+    "compile": "tsc -p ./"
+  },
+  "bin": {
+    "langserver-lean": "lib/index.js"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@types/node": "^6.0.69",
+    "lean-client-js-node": "^1.2.3",
+    "vscode-languageserver": "^3.2.0",
+    "vscode-uri": "^1.0.0"
+  }
+}
