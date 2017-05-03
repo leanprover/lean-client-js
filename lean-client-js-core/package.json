@@ -7,7 +7,7 @@
   "keywords": [],
   "author": "Gabriel Ebner <gebner@gebner.org>",
   "scripts": {
-    "compile": "tsc -p ./"
+    "compile": "tsc -w -p ./"
   },
   "repository": {
     "type": "git",
