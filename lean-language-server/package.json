@@ -1,5 +1,5 @@
 {
-  "name": "lean-client-js-langserver",
+  "name": "lean-language-server",
   "version": "1.0.0",
   "description": "Language Server Protocol server for Lean",
   "main": "lib/index.js",

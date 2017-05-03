@@ -1,7 +1,8 @@
 {
   "lerna": "2.0.0-rc.3",
   "packages": [
-    "lean-client-js-*/"
+    "lean-client-js-*/",
+    "lean-language-server/"
   ],
   "version": "1.2.3"
 }
