@@ -156,23 +156,31 @@ connection.onHover((params): Promise<Hover> => {
     const position = params.position;
     return server.info(fileName, position.line + 1, position.character).then((response) => {
         const marked: MarkedString[] = [];
-        if (response.record) {
-            const name = response.record['full-id'] || response.record.text;
-            if (name) {
-                if (response.record.tactic_params) {
-                    marked.push({ language: 'text', value: name + ' ' + response.record.tactic_params.join(' ') });
-                } else {
-                    marked.push({ language: 'lean', value: name + ' : ' + response.record.type });
-                }
-            }
-            if (response.record.doc) {
-                marked.push(response.record.doc);
-            }
-            if (response.record.state && !marked) {
-                marked.push({ language: 'lean', value: response.record.state });
+        const record = response.record;
+        if (!record) {
+            return null;
+        }
+        const name = record['full-id'] || record.text;
+        if (name) {
+            if (response.record.tactic_params) {
+                marked.push({
+                    language: 'text',
+                    value: name + ' ' + record.tactic_params.join(' '),
+                });
+            } else {
+                marked.push({
+                    language: 'lean',
+                    value: name + ' : ' + record.type,
+                });
             }
         }
-        return marked && {
+        if (response.record.doc) {
+            marked.push(response.record.doc);
+        }
+        if (response.record.state) {
+            marked.push({language: 'lean', value: record.state});
+        }
+        return {
             contents: marked,
             range: Range.create(position, position),
         } as Hover;

@@ -59,7 +59,7 @@ export class Server {
         return promise;
     }
 
-    info(file: string, line: number, column: number): Promise<any> {
+    info(file: string, line: number, column: number): Promise<InfoResponse> {
         return this.send({command: 'info', file_name: file, line, column});
     }
 

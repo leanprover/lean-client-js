@@ -89,8 +89,26 @@ export interface InfoRequest extends Request {
     column: number;
 }
 
+export interface InfoSource {
+    line: number;
+    column: number;
+    file?: string;
+}
+
+export type GoalState = string;
+
+export interface InfoRecord {
+    'full-id'?: string;
+    text?: string;
+    type?: string;
+    doc?: string;
+    source?: InfoSource;
+    tactic_params?: string[];
+    state?: GoalState;
+}
+
 export interface InfoResponse extends CommandResponse {
-    // TODO(gabriel)
+    record?: InfoRecord;
 }
 
 export type CheckingMode = 'nothing' | 'visible-lines'
