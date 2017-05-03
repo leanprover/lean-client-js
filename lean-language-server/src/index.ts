@@ -1,8 +1,8 @@
 
 import {Message, ProcessTransport, Server, Severity} from 'lean-client-js-node';
-import {CompletionItem, CompletionItemKind, createConnection, Definition, Diagnostic, DiagnosticSeverity,
-    Hover, IConnection, InitializeParams, InitializeResult, Location, MarkedString, Position, Range, TextDocument,
-    TextDocumentPositionParams, TextDocuments, TextDocumentSyncKind} from 'vscode-languageserver';
+import {CompletionItem, CompletionItemKind, createConnection, Definition, Diagnostic, DiagnosticSeverity, Hover,
+    IConnection, InitializeParams, InitializeResult, Location, MarkedString, Position, Range, ResponseError,
+    TextDocument, TextDocumentPositionParams, TextDocuments, TextDocumentSyncKind} from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 
 const connection = createConnection();
@@ -115,7 +115,7 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Prom
     const fileName = Uri.parse(textDocumentPosition.textDocument.uri).fsPath;
     const position = textDocumentPosition.position;
     return server.complete(fileName, position.line + 1, position.character).then((message) => {
-        return message.completions && message.completions.map((completion) => {
+        return !message.completions ? [] : message.completions.map((completion) => {
             const item: CompletionItem = {
                 label: completion.text,
                 kind: CompletionItemKind.Function,
@@ -136,7 +136,7 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Prom
     });
 });
 
-connection.onDefinition((params): Promise<Definition> => {
+connection.onDefinition(((params): Promise<Definition[]> => {
     const fileName = Uri.parse(params.textDocument.uri).fsPath;
     const position = params.position;
     return server.info(fileName, position.line + 1, position.character).then((response) => {
@@ -144,12 +144,12 @@ connection.onDefinition((params): Promise<Definition> => {
             const src = response.record.source;
             const uri = src.file ? Uri.file(src.file).toString() : params.textDocument.uri;
             const pos = Position.create(src.line - 1, src.column);
-            return Location.create(uri, Range.create(pos, pos));
+            return [Location.create(uri, Range.create(pos, pos))];
         } else {
-            return null;
+            return [];
         }
     });
-});
+}) as any);
 
 connection.onHover((params): Promise<Hover> => {
     const fileName = Uri.parse(params.textDocument.uri).fsPath;
@@ -158,7 +158,7 @@ connection.onHover((params): Promise<Hover> => {
         const marked: MarkedString[] = [];
         const record = response.record;
         if (!record) {
-            return null;
+            return {contents: []};
         }
         const name = record['full-id'] || record.text;
         if (name) {
