@@ -8,4 +8,4 @@ npm run demo
 ```
 And go to http://localhost:8080/
 
-You can then also run `npm run local-demo` to see the same code interacting with a locally-installed version of Lean.
+You can then also run `npm run node-demo` to see the same code interacting with a locally-installed version of Lean.
