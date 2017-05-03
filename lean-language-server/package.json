@@ -14,7 +14,7 @@
     "compile": "tsc -w -p ./"
   },
   "bin": {
-    "langserver-lean": "lib/index.js"
+    "lean-language-server": "lib/index.js"
   },
   "license": "Apache-2.0",
   "dependencies": {
