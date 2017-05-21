@@ -1,6 +1,6 @@
 {
   "name": "lean-client-js-node",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "description": "Interface to the Lean server",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -16,6 +16,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@types/node": "^7.0.21",
-    "lean-client-js-core": "^1.2.4"
+    "lean-client-js-core": "^1.2.6"
   }
 }
