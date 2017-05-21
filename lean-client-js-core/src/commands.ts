@@ -111,6 +111,23 @@ export interface InfoResponse extends CommandResponse {
     record?: InfoRecord;
 }
 
+/** Experimental API, >=3.1.1 */
+export interface SearchRequest extends Request {
+    command: 'search';
+    query: string;
+}
+
+export interface SearchItem {
+    source?: InfoSource;
+    text: string;
+    type: string;
+    doc?: string;
+}
+
+export interface SearchResponse extends CommandResponse {
+    results: SearchItem[];
+}
+
 export type CheckingMode = 'nothing' | 'visible-lines'
     | 'visible-lines-and-above' | 'visible-files' | 'open-files';
 

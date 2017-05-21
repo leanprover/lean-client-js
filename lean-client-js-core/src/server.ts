@@ -1,6 +1,7 @@
 import {AdditionalMessageResponse, AllMessagesResponse, CheckingMode, CommandResponse,
     CompleteRequest, CompleteResponse, CurrentTasksResponse, ErrorResponse, FileRoi,
-    InfoRequest, InfoResponse, Message, Request, RoiRequest, SyncRequest} from './commands';
+    InfoRequest, InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse,
+    SyncRequest} from './commands';
 import {Event} from './event';
 import {Connection, Transport, TransportError} from './transport';
 
@@ -47,6 +48,7 @@ export class Server {
     send(req: SyncRequest): Promise<CommandResponse>;
     send(req: RoiRequest): Promise<CommandResponse>;
     send(req: Request): Promise<CommandResponse>;
+    send(req: SearchRequest): Promise<SearchResponse>;
     send(req: Request): Promise<CommandResponse> {
         if (!this.alive()) {
             return new Promise((resolve, reject) => reject('server is not alive'));
