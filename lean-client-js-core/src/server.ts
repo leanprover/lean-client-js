@@ -75,6 +75,10 @@ export class Server {
             skip_completions: skipCompletions || false});
     }
 
+    search(query: string): Promise<SearchResponse> {
+        return this.send({command: 'search', query});
+    }
+
     roi(mode: CheckingMode, files: FileRoi[]): Promise<CommandResponse> {
         return this.send({command: 'roi', files, mode} as RoiRequest);
     }
