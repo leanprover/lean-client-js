@@ -18,9 +18,9 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@types/node": "^6.0.71",
-    "lean-client-js-node": "^1.2.3",
-    "vscode-languageserver": "^3.2.1",
+    "@types/node": "^7.0.21",
+    "lean-client-js-node": "^1.2.4",
+    "vscode-languageserver": "^3.2.2",
     "vscode-uri": "^1.0.0"
   }
 }

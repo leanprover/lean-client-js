@@ -15,7 +15,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@types/node": "^6.0.73",
+    "@types/node": "^7.0.21",
     "lean-client-js-core": "^1.2.4"
   }
 }
