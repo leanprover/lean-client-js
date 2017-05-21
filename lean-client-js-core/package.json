@@ -1,6 +1,6 @@
 {
   "name": "lean-client-js-core",
-  "version": "1.2.0",
+  "version": "1.2.4",
   "description": "Interface to the Lean server",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
