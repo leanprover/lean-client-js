@@ -14,17 +14,6 @@ export class ProcessTransport implements Transport {
     }
 
     connect(): Connection {
-        // Note: on Windows the PATH variable must be set since
-        // the standard msys2 installation paths are not added to the
-        // Windows Path by msys2. We could instead people to set the
-        // path themselves but it seems like a lot of extra friction.
-        //
-        // This is also tricky since there is very little way to give
-        // feedback when shelling out to Lean fails. Node.js appears
-        // fail to start without writing any output to standard error.
-        //
-        // For now we just set the path with low priority and invoke the process.
-
         const process = child.spawn(this.executablePath,
             ['--server'].concat(this.options).concat([`*${this.workingDirectory}*`]),
             { cwd: this.workingDirectory, env: this.getEnv() });
@@ -61,11 +50,35 @@ export class ProcessTransport implements Transport {
         return conn;
     }
 
+    getVersion(): string {
+        const output = child.execSync(`${this.executablePath} --version`, { env : this.getEnv() });
+        const matchRegex = /Lean \(version ([0-9.]+)/;
+        return output.toString().match(matchRegex)[1];
+    }
+
     private getEnv() {
         const env = Object.create(process.env);
         if (process.platform === 'win32') {
-            env.Path = env.Path + ';C:\\msys64\\mingw64\\bin;C:\\msys64\\usr\\local\\bin;'
-            + 'C:\\msys64\\usr\\bin;C:\\msys64\\bin;C:\\msys64\\opt\\bin;';
+            // Note: on Windows the PATH variable must be set since
+            // the standard msys2 installation paths are not added to the
+            // Windows Path by msys2. We could instead people to set the
+            // path themselves but it seems like a lot of extra friction.
+            //
+            // This is also tricky since there is very little way to give
+            // feedback when shelling out to Lean fails. Node.js appears
+            // fail to start without writing any output to standard error.
+            //
+            // For now we just set the path with low priority and invoke the process.
+
+            const additionalPaths = [
+                'C:\\msys64\\mingw64\\bin',
+                'C:\\msys64\\usr\\local\\bin',
+                'C:\\msys64\\usr\\bin',
+                'C:\\msys64\\bin',
+                'C:\\msys64\\opt\\bin',
+            ];
+
+            env.Path = env.Path + ';' + additionalPaths.join(';');
         }
         return env;
     }
