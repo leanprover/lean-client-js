@@ -15,21 +15,33 @@ const testfile = ''
     + '  (assume Hpq : p /\\ q,\n'
     + '    and.intro (and.elim_right Hpq) (and.elim_left Hpq))\n'
     + '  (assume Hqp : q /\\ p,\n'
-    + '    and.intro (and.elim_right Hqp) (and.elim_left Hqp))\n'
+    + '    and.intro (and.elim_right Hqp) {!!})\n'
     + '#check @nat.rec_on\n'
     + '#print "end of file!"\n';
 
-function demo(): Promise<any> {
-    server.sync('test.lean', testfile)
-        .catch((err) => console.log(`error while syncing file: ${err}`));
+async function demo(): Promise<any> {
+    await server.sync('test.lean', testfile);
 
     server.send({command: 'sleep'});
 
-    return server.info('test.lean', 3, 0)
-        .then((res) => console.log(`got info: ${JSON.stringify(res)}`))
-        .catch((err) => console.log(`error while getting info: ${err}`));
+    const holes = await server.allHoleCommands('test.lean');
+    for (const hole of holes.holes) {
+        for (const action of hole.results) {
+            await server.hole(hole.file, hole.start.line, hole.start.column, action.name)
+                .then((res) => console.log(`executed hole ${action.name}`, res))
+                .catch((err) => console.log(`hole error for ${action.name}`, err));
+        }
+    }
+
+    const info = await server.info('test.lean', 3, 0);
+    console.log(`got info: ${JSON.stringify(info)}`);
 }
 
-demo().then(() => server.restart())
-      .then(() => demo())
-      .then(() => process.exit(0));
+async function main(): Promise<any> {
+    await demo();
+    server.restart();
+    await demo();
+    process.exit(0);
+}
+
+main().catch((err) => console.log('error:', err));

@@ -1,7 +1,7 @@
-import {AdditionalMessageResponse, AllMessagesResponse, CheckingMode, CommandResponse,
-    CompleteRequest, CompleteResponse, CurrentTasksResponse, ErrorResponse, FileRoi,
-    InfoRequest, InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse,
-    SyncRequest} from './commands';
+import {AdditionalMessageResponse, AllHoleCommandsRequest, AllHoleCommandsResponse, AllMessagesResponse,
+    CheckingMode, CommandResponse, CompleteRequest, CompleteResponse, CurrentTasksResponse,
+    ErrorResponse, FileRoi, HoleCommandsRequest, HoleCommandsResponse, HoleRequest, HoleResponse, InfoRequest,
+    InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse, SyncRequest} from './commands';
 import {Event} from './event';
 import {Connection, Transport, TransportError} from './transport';
 
@@ -49,6 +49,9 @@ export class Server {
     send(req: RoiRequest): Promise<CommandResponse>;
     send(req: Request): Promise<CommandResponse>;
     send(req: SearchRequest): Promise<SearchResponse>;
+    send(req: HoleCommandsRequest): Promise<HoleCommandsResponse>;
+    send(req: AllHoleCommandsRequest): Promise<AllHoleCommandsResponse>;
+    send(req: HoleRequest): Promise<HoleResponse>;
     send(req: Request): Promise<CommandResponse> {
         if (!this.alive()) {
             return new Promise((resolve, reject) => reject('server is not alive'));
@@ -77,6 +80,18 @@ export class Server {
 
     search(query: string): Promise<SearchResponse> {
         return this.send({command: 'search', query});
+    }
+
+    allHoleCommands(file: string): Promise<AllHoleCommandsResponse> {
+        return this.send({command: 'all_hole_commands', file_name: file});
+    }
+
+    holeCommands(file: string, line: number, column: number): Promise<HoleCommandsResponse> {
+        return this.send({command: 'hole_commands', file_name: file, line, column});
+    }
+
+    hole(file: string, line: number, column: number, action: string): Promise<HoleResponse> {
+        return this.send({command: 'hole', file_name: file, line, column, action});
     }
 
     roi(mode: CheckingMode, files: FileRoi[]): Promise<CommandResponse> {

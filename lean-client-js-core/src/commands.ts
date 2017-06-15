@@ -128,6 +128,61 @@ export interface SearchResponse extends CommandResponse {
     results: SearchItem[];
 }
 
+export interface HoleCommandsRequest extends Request {
+    command: 'hole_commands';
+    file_name: string;
+    line: number;
+    column: number;
+}
+
+export interface HoleCommandAction {
+    name: string;
+    description: string;
+}
+
+export interface HoleCommands {
+    file: string;
+    start: { line: number; column: number };
+    end: { line: number; column: number };
+    results: HoleCommandAction[];
+}
+
+export interface HoleCommandsResponse extends CommandResponse, HoleCommands {}
+
+export interface AllHoleCommandsRequest extends Request {
+    command: 'all_hole_commands';
+    file_name: string;
+}
+
+export interface AllHoleCommandsResponse extends CommandResponse {
+    holes: HoleCommands[];
+}
+
+export interface HoleRequest extends Request {
+    command: 'hole';
+    file_name: string;
+    line: number;
+    column: number;
+    action: string;
+}
+
+export interface HoleReplacementAlternative {
+    code: string;
+    description: string;
+}
+
+export interface HoleReplacements {
+    file: string;
+    start: { line: number; column: number };
+    end: { line: number; column: number };
+    alternatives: HoleReplacementAlternative[];
+}
+
+export interface HoleResponse extends CommandResponse {
+    replacements?: HoleReplacements;
+    message?: string;
+}
+
 export type CheckingMode = 'nothing' | 'visible-lines'
     | 'visible-lines-and-above' | 'visible-files' | 'open-files';
 
