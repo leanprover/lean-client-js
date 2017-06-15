@@ -24,6 +24,8 @@ export class Server {
     allMessages: Event<AllMessagesResponse> = new Event();
     tasks: Event<CurrentTasksResponse> = new Event();
 
+    logMessagesToConsole = false;
+
     private currentSeqNum: number = 0;
     private conn?: Connection;
     private currentMessages: Message[] = [];
@@ -55,6 +57,10 @@ export class Server {
     send(req: Request): Promise<CommandResponse> {
         if (!this.alive()) {
             return new Promise((resolve, reject) => reject('server is not alive'));
+        }
+
+        if (this.logMessagesToConsole) {
+            console.log('=> server: ', req);
         }
 
         req.seq_num = this.currentSeqNum++;
@@ -115,6 +121,10 @@ export class Server {
     }
 
     private onMessage(msg: any) {
+        if (this.logMessagesToConsole) {
+            console.log('<= server: ', msg);
+        }
+
         const reqInfo = this.sentRequests.get(msg.seq_num); // undefined if msg.seq_num does not exist
         if (reqInfo !== undefined) {
             this.sentRequests.delete(msg.seq_num);
