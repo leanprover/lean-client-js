@@ -4,6 +4,7 @@
 ```
 npm install
 npm run bootstrap
+npm run compile
 npm run demo
 ```
 And go to http://localhost:8080/
