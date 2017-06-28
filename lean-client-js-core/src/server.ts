@@ -64,7 +64,7 @@ export class Server {
         }
 
         req.seq_num = this.currentSeqNum++;
-        const promise = new Promise((resolve, reject) =>
+        const promise = new Promise<CommandResponse>((resolve, reject) =>
             this.sentRequests.set(req.seq_num, { resolve, reject }));
         this.conn.send(req);
         return promise;
