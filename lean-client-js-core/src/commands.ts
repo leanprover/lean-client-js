@@ -13,6 +13,8 @@ export interface Message {
     file_name: string;
     pos_line: number;
     pos_col: number;
+    end_pos_line?: number;
+    end_pos_col?: number;
     severity: Severity;
     caption: string;
     text: string;
