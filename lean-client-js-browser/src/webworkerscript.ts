@@ -1,3 +1,4 @@
+import 'babel-polyfill';
 import {Connection} from 'lean-client-js-core';
 import {InProcessTransport, loadBufferFromURL, loadJsOrWasm} from './inprocess';
 import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';

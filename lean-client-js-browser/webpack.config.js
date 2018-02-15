@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 let distDir = path.resolve(__dirname, 'dist');
 
 module.exports = {
-    entry: './demo.ts',
+    entry: ['babel-polyfill', './demo.ts'],
     output: {
         path: distDir,
         filename: 'demo_bundle.js',

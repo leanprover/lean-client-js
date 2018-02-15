@@ -1,4 +1,5 @@
 import * as BrowserFS from 'browserfs';
+import ZipFS from 'browserfs/dist/node/backend/ZipFS';
 import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
 
 declare const Module: any;
@@ -39,21 +40,7 @@ export class InProcessTransport implements Transport {
         const emscriptenInitialized = new Promise((resolve, reject) => Module.onRuntimeInitialized = resolve);
 
         console.log('downloading lean...');
-        conn.module = Promise.all([this.loadJs(), emscriptenInitialized, this.libraryZip]).then((results) => {
-            if (this.libraryZip) {
-                const zipBuffer = results[2];
-                const libraryFS = new BrowserFS.FileSystem.ZipFS(zipBuffer);
-                BrowserFS.initialize(libraryFS);
-                const BFS = new BrowserFS.EmscriptenFS();
-                Module.FS.createFolder(Module.FS.root, 'library', true, true);
-                Module.FS.mount(BFS, {root: '/'}, '/library');
-            }
-
-            (Module.lean_init || Module._lean_init)();
-            console.log('lean server initialized.');
-            return Module;
-        });
-
+        conn.module = this.init(emscriptenInitialized);
         conn.module.catch((err) =>
             conn.error.fire({
                 error: 'connect',
@@ -61,6 +48,24 @@ export class InProcessTransport implements Transport {
             }));
 
         return conn;
+    }
+
+    private async init(emscriptenInitialized: Promise<{}>): Promise<any> {
+        const [loadJs, inited, zipBuffer] = await Promise.all(
+            [this.loadJs(), emscriptenInitialized, this.libraryZip]);
+        if (this.libraryZip) {
+            const libraryFS = await new Promise<ZipFS>((resolve, reject) =>
+                ZipFS.Create({zipData: zipBuffer},
+                    (err, res) => err ? reject(err) : resolve(res)));
+            BrowserFS.initialize(libraryFS);
+            const BFS = new BrowserFS.EmscriptenFS();
+            Module.FS.createFolder(Module.FS.root, 'library', true, true);
+            Module.FS.mount(BFS, {root: '/'}, '/library');
+        }
+
+        (Module.lean_init || Module._lean_init)();
+        console.log('lean server initialized.');
+        return Module;
     }
 }
 
