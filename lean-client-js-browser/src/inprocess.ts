@@ -64,6 +64,9 @@ export class InProcessTransport implements Transport {
     }
 }
 
+declare function lengthBytesUTF8(msg: string): number;
+declare function stringToUTF8(msg: string, ptr: any, len: number);
+
 class InProcessConnection implements Connection {
     error: Event<TransportError> = new Event();
     jsonMessage: Event<any> = new Event();
@@ -74,9 +77,9 @@ class InProcessConnection implements Connection {
     send(jsonMsg: any) {
         this.module.then((mod) => {
             const msg = JSON.stringify(jsonMsg);
-            const len = lengthBytesUTF8(msg) + 1;
+            const len = (lengthBytesUTF8 || mod.lengthBytesUTF8)(msg) + 1;
             const msgPtr = mod._malloc(len);
-            stringToUTF8(msg, msgPtr, len);
+            (stringToUTF8 || mod.stringToUTF8)(msg, msgPtr, len);
             (mod.lean_process_request || mod._lean_process_request)(msgPtr);
             mod._free(msgPtr);
         });
