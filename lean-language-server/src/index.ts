@@ -1,4 +1,4 @@
-
+#!/usr/bin/env node
 import {Message, ProcessTransport, Server, Severity} from 'lean-client-js-node';
 import {CompletionItem, CompletionItemKind, createConnection, Definition, Diagnostic, DiagnosticSeverity, Hover,
     IConnection, InitializeParams, InitializeResult, Location, MarkedString, Position, Range, ResponseError,
