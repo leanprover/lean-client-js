@@ -6,11 +6,11 @@ window.onload = () => {
     document.body.appendChild(p);
 
     const opts: lean.LeanJsOpts = {
-        javascript: 'https://leanprover.github.io/lean.js/lean3.js',
-        // javascript: '/lean_js_js.js',
-        // webassemblyJs: '/lean_js_wasm.js',
-        // webassemblyWasm: '/lean_js_wasm.wasm',
-        // libraryZip: '/library.zip',
+        // javascript: 'https://leanprover.github.io/lean.js/lean3.js',
+        javascript: './lean_js_js.js',
+        webassemblyJs: './lean_js_wasm.js',
+        webassemblyWasm: './lean_js_wasm.wasm',
+        libraryZip: './library.zip',
     };
 
     const transport =

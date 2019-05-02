@@ -25,4 +25,4 @@ module.exports = {
         child_process: 'empty',
         readline: 'empty',
     },
-}
+};

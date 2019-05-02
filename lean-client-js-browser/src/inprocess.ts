@@ -1,4 +1,5 @@
 import * as BrowserFS from 'browserfs';
+// import IndexedDBFileSystem from 'browserfs/dist/node/backend/IndexedDB';
 import ZipFS from 'browserfs/dist/node/backend/ZipFS';
 import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
 
@@ -144,7 +145,7 @@ export function loadBufferFromURL(url: string): Promise<Buffer> {
         const req = new XMLHttpRequest();
         req.responseType = 'arraybuffer';
         req.open('GET', url);
-        req.onload = (e) => {
+        req.onloadend = (e) => {
             if (req.status === 200) {
                 resolve(new Buffer(req.response as ArrayBuffer));
             } else {
@@ -154,6 +155,119 @@ export function loadBufferFromURL(url: string): Promise<Buffer> {
         req.onerror = (e) => reject(e);
         req.send();
     });
+}
+
+interface ResponseCacheHeaders {
+    contentLength: string;
+    etag: string;
+    lastModified: string;
+}
+export function loadBufferFromURLCached(url: string): Promise<Buffer> {
+    if (!url) {
+        return null;
+    }
+    const headPromise = new Promise<ResponseCacheHeaders>((resolve, reject) => {
+        const req = new XMLHttpRequest();
+        req.open('HEAD', url);
+        req.onreadystatechange = (e) => {
+            if (req.status === 200) {
+                const responseData: ResponseCacheHeaders = {
+                    contentLength: req.getResponseHeader('content-length'),
+                    etag: req.getResponseHeader('etag'),
+                    lastModified: req.getResponseHeader('last-modified'),
+                };
+                resolve(responseData);
+            } else {
+                reject(`could not fetch ${url}: http code ${req.status} ${req.statusText}`);
+            }
+        };
+        req.onerror = (e) => reject(e);
+        req.send();
+    });
+
+    const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+        const dbRequest = indexedDB.open('leanlibrary');
+        dbRequest.onsuccess = (event) => {
+            // console.log('opened indexedDB');
+            resolve(dbRequest.result);
+        };
+        dbRequest.onerror = (event) => {
+            console.log('failed to open indexedDB');
+            reject(dbRequest.error);
+        };
+        dbRequest.onupgradeneeded = (event) => {
+            // console.log('creating indexedDB');
+            dbRequest.result.createObjectStore('library');
+            dbRequest.result.createObjectStore('meta');
+        };
+    });
+
+    const metaPromise = dbPromise.then((db) => new Promise<any>((resolve, reject) => {
+        const trans = db.transaction('meta').objectStore('meta').get('meta');
+        trans.onsuccess = (event) => {
+            // console.log('retrieved header from cache', trans.result);
+            resolve(trans.result);
+        };
+        trans.onerror = (event) => {
+            console.log('error getting header from cache');
+            reject(trans.error);
+        };
+    }));
+
+    return Promise.all([headPromise, dbPromise, metaPromise])
+        .then(([response, db, meta]) => {
+            if (!meta || (meta.contentLength !== response.contentLength)
+            || (meta.etag !== response.etag)
+            || (meta.lastModified !== response.lastModified)) {
+                // cache miss
+                // console.log('cache miss!');
+                const buffPromise = loadBufferFromURL(url);
+                // assume that the file hasn't changed since head request...
+                const metaUpdatePromise = new Promise<any>((res, rej) => {
+                    // console.log('saving header to cache');
+                    const trans = db.transaction('meta', 'readwrite').objectStore('meta')
+                        .put(response, 'meta');
+                    trans.onsuccess = (event) => {
+                        // console.log('saved header to cache');
+                        res(trans.result);
+                    };
+                    trans.onerror = (event) => {
+                        console.log('error saving header to cache', event);
+                        rej(trans.error);
+                    };
+                });
+                return Promise.all([buffPromise, metaUpdatePromise])
+                    .then(([buff, metaUpdate]) => {
+                        return new Promise<Buffer>((res, rej) => {
+                            // save buffer to cache
+                            // console.log('saving library to cache');
+                            const trans = db.transaction('library', 'readwrite').objectStore('library')
+                                .put(buff, 'library');
+                            trans.onsuccess = (event) => {
+                                // console.log('saved library to cache');
+                                res(buff);
+                            };
+                            trans.onerror = (event) => {
+                                console.log('error saving library to cache', event);
+                                rej(trans.error);
+                            };
+                        });
+                    });
+            }
+            // cache hit: pretend that the meta and library stores are always in sync
+            return new Promise<Buffer>((res, rej) => {
+                // console.log('cache hit!');
+                const trans = db.transaction('library').objectStore('library').get('library');
+                trans.onsuccess = (event) => {
+                    // console.log('retrieved library from cache', trans.result);
+                    res(new Buffer(trans.result));
+                };
+                trans.onerror = (event) => {
+                    console.log('error getting library from cache', event);
+                    rej(trans.error);
+                };
+            });
+        });
 }
 
 export class BrowserInProcessTransport extends InProcessTransport {
