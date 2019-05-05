@@ -166,6 +166,10 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
     if (!url) {
         return null;
     }
+    if (!url.toLowerCase().endsWith('.zip')) {
+        return null;
+    }
+    const filename = url.split('/').pop().split('.')[0];
     const headPromise = new Promise<ResponseCacheHeaders>((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.open('HEAD', url);
@@ -186,7 +190,8 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
     });
 
     const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-        const dbRequest = indexedDB.open('leanlibrary');
+        const ver = 2;
+        const dbRequest = indexedDB.open('leanlibrary', ver);
         dbRequest.onsuccess = (event) => {
             // console.log('opened indexedDB');
             resolve(dbRequest.result);
@@ -196,20 +201,25 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
             reject(dbRequest.error);
         };
         dbRequest.onupgradeneeded = (event) => {
+            const {result: db} = dbRequest;
+            const arr = dbRequest.result.objectStoreNames;
+            for (let j = 0; j < arr.length; j++) {
+                db.deleteObjectStore(arr[j]);
+            }
             // console.log('creating indexedDB');
-            dbRequest.result.createObjectStore('library');
-            dbRequest.result.createObjectStore('meta');
+            db.createObjectStore('library');
+            db.createObjectStore('meta');
         };
     });
 
     const metaPromise = dbPromise.then((db) => new Promise<any>((resolve, reject) => {
-        const trans = db.transaction('meta').objectStore('meta').get('meta');
+        const trans = db.transaction('meta').objectStore('meta').get(filename);
         trans.onsuccess = (event) => {
             // console.log('retrieved header from cache', trans.result);
             resolve(trans.result);
         };
         trans.onerror = (event) => {
-            console.log('error getting header from cache');
+            console.log(`error getting header for ${filename} from cache`);
             reject(trans.error);
         };
     }));
@@ -226,13 +236,13 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
                 const metaUpdatePromise = new Promise<any>((res, rej) => {
                     // console.log('saving header to cache');
                     const trans = db.transaction('meta', 'readwrite').objectStore('meta')
-                        .put(response, 'meta');
+                        .put(response, filename);
                     trans.onsuccess = (event) => {
                         // console.log('saved header to cache');
                         res(trans.result);
                     };
                     trans.onerror = (event) => {
-                        console.log('error saving header to cache', event);
+                        console.log(`error saving header for ${filename} from cache`, event);
                         rej(trans.error);
                     };
                 });
@@ -242,13 +252,13 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
                             // save buffer to cache
                             // console.log('saving library to cache');
                             const trans = db.transaction('library', 'readwrite').objectStore('library')
-                                .put(buff, 'library');
+                                .put(buff, filename);
                             trans.onsuccess = (event) => {
                                 // console.log('saved library to cache');
                                 res(buff);
                             };
                             trans.onerror = (event) => {
-                                console.log('error saving library to cache', event);
+                                console.log(`error saving ${filename} to cache`, event);
                                 rej(trans.error);
                             };
                         });
@@ -257,13 +267,14 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
             // cache hit: pretend that the meta and library stores are always in sync
             return new Promise<Buffer>((res, rej) => {
                 // console.log('cache hit!');
-                const trans = db.transaction('library').objectStore('library').get('library');
+                const trans = db.transaction('library').objectStore('library')
+                    .get(filename);
                 trans.onsuccess = (event) => {
                     // console.log('retrieved library from cache', trans.result);
                     res(new Buffer(trans.result));
                 };
                 trans.onerror = (event) => {
-                    console.log('error getting library from cache', event);
+                    console.log(`error getting ${filename} from cache`, event);
                     rej(trans.error);
                 };
             });
