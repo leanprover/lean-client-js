@@ -138,9 +138,6 @@ export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<
 }
 
 export function loadBufferFromURL(url: string): Promise<Buffer> {
-    if (!url) {
-        return null;
-    }
     return new Promise<Buffer>((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.responseType = 'arraybuffer';
@@ -168,6 +165,9 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
     }
     if (!url.toLowerCase().endsWith('.zip')) {
         return null;
+    }
+    if (!('indexedDB' in self)) {
+        return loadBufferFromURL(url);
     }
     const filename = url.split('/').pop().split('.')[0];
     const headPromise = new Promise<ResponseCacheHeaders>((resolve, reject) => {
@@ -283,6 +283,6 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
 
 export class BrowserInProcessTransport extends InProcessTransport {
     constructor(opts: LeanJsOpts) {
-        super(() => loadJsOrWasm(opts, loadJsBrowser), loadBufferFromURL(opts.libraryZip), opts.memoryMB || 256);
+        super(() => loadJsOrWasm(opts, loadJsBrowser), loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256);
     }
 }
