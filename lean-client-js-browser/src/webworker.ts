@@ -10,7 +10,8 @@ export class WebWorkerTransport implements Transport {
     }
 
     connect(): WebWorkerConnection {
-        const worker = new (require('worker-loader!./webworkerscript'))();
+        // const worker = new (require('worker-loader?name=leanBrowserWorker.js!./webworkerscript'))();
+        const worker = new (require('worker-loader?inline=true&fallback=false!./webworkerscript'))();
         worker.postMessage({
             command: 'start-webworker',
             opts: this.opts,

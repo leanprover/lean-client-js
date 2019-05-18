@@ -128,7 +128,8 @@ export function loadJsBrowser(url: string): Promise<any> {
 
 export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<any>): Promise<any> {
     if ((self as any).WebAssembly && urls.webassemblyJs && urls.webassemblyWasm) {
-        Module.wasmBinaryFile = urls.webassemblyWasm;
+        // Module.wasmBinaryFile = urls.webassemblyWasm; // deprecated!
+        Module.locateFile = () => urls.webassemblyWasm;
         return loadJs(urls.webassemblyJs);
     } else if (urls.javascript) {
         return loadJs(urls.javascript);
