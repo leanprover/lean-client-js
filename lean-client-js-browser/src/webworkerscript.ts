@@ -1,4 +1,4 @@
-import 'babel-polyfill';
+// import 'babel-polyfill';
 import {Connection} from 'lean-client-js-core';
 import {InProcessTransport, loadBufferFromURLCached, loadJsOrWasm} from './inprocess';
 import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';
@@ -28,3 +28,5 @@ onmessage = (e) => {
             }
     }
 };
+
+export default {} as typeof Worker & {new (): Worker};

@@ -1,13 +1,16 @@
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-
 const TerserPlugin = require('terser-webpack-plugin-legacy');
 
 let distDir = path.resolve(__dirname, 'dist');
 
 module.exports = [{
     name: 'demo',
-    entry: ['babel-polyfill', './demo.ts'],
+    entry: [
+        // 'babel-polyfill',
+        './demo.ts',
+    ],
     output: {
         path: distDir,
         filename: 'demo_bundle.js',
@@ -17,15 +20,19 @@ module.exports = [{
     module: {
         rules: [
             {
+                test: /webworkerscript\.ts$/,
+                use: { loader:'worker-loader' },
+            },
+            {
                 test: /\.tsx?$/,
                 use: [
-                    'babel-loader?presets[]=env',
+                    // 'babel-loader?presets[]=env',
                     {
                         loader:'ts-loader',
                         options: {
                             transpileOnly: true
                         }
-                    }
+                    },
                 ],
             },
         ],
@@ -39,7 +46,10 @@ module.exports = [{
 },
 {
     name: 'lib',
-    entry: ['babel-polyfill', './src/index.ts'],
+    entry: [
+        // 'babel-polyfill',
+        './src/index.ts',
+    ],
     output: {
         path: distDir,
         filename: 'leanBrowser.js',
@@ -51,21 +61,34 @@ module.exports = [{
     module: {
         rules: [
             {
+                test: /webworkerscript\.ts$/,
+                use: [
+                    {
+                        loader:'worker-loader',
+                        options: {
+                            inline: true,
+                            fallback: false
+                        }
+                    },
+                ]
+            },
+            {
                 test: /\.tsx?$/,
                 use: [
-                    'babel-loader?presets[]=env',
+                    // 'babel-loader?presets[]=env',
                     {
                         loader:'ts-loader',
                         options: {
                             transpileOnly: true
                         }
-                    }
+                    },
                 ],
             },
         ],
     },
-    // devServer: { contentBase: distDir },
-    plugins: [new TerserPlugin],
+    plugins: [new TerserPlugin, new CopyWebpackPlugin([
+        { from: './lib_test.html', to: 'lib_test.html' },
+    ])],
     node: {
         child_process: 'empty',
         readline: 'empty',

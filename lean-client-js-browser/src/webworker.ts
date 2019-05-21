@@ -1,5 +1,6 @@
 import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
 import {LeanJsOpts} from './inprocess';
+import Worker from './webworkerscript';
 import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';
 
 export class WebWorkerTransport implements Transport {
@@ -10,8 +11,7 @@ export class WebWorkerTransport implements Transport {
     }
 
     connect(): WebWorkerConnection {
-        // const worker = new (require('worker-loader?name=leanBrowserWorker.js!./webworkerscript'))();
-        const worker = new (require('worker-loader?inline=true&fallback=false!./webworkerscript'))();
+        const worker = new Worker();
         worker.postMessage({
             command: 'start-webworker',
             opts: this.opts,
