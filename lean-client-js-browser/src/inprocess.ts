@@ -1,6 +1,8 @@
-import * as BrowserFS from 'browserfs';
-// import IndexedDBFileSystem from 'browserfs/dist/node/backend/IndexedDB';
+// import * as BrowserFS from 'browserfs';
+// avoid importing all BrowserFS backends per: https://github.com/jvilk/BrowserFS/issues/233#issuecomment-409523418
 import ZipFS from 'browserfs/dist/node/backend/ZipFS';
+import FS from 'browserfs/dist/node/core/FS';
+import EmscriptenFS from 'browserfs/dist/node/generic/emscripten_fs';
 import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
 
 declare const Module: any;
@@ -52,14 +54,13 @@ export class InProcessTransport implements Transport {
     }
 
     private async init(emscriptenInitialized: Promise<{}>): Promise<any> {
-        const [loadJs, inited, zipBuffer] = await Promise.all(
-            [this.loadJs(), emscriptenInitialized, this.libraryZip]);
-        if (this.libraryZip) {
+        if (library) {
             const libraryFS = await new Promise<ZipFS>((resolve, reject) =>
-                ZipFS.Create({zipData: zipBuffer},
+                ZipFS.Create({zipData: library.zipBuffer},
                     (err, res) => err ? reject(err) : resolve(res)));
+            const BrowserFS = new FS();
             BrowserFS.initialize(libraryFS);
-            const BFS = new BrowserFS.EmscriptenFS();
+            const BFS = new EmscriptenFS(Module.FS, Module.PATH, Module.ERRNO_CODES, BrowserFS);
             Module.FS.createFolder(Module.FS.root, 'library', true, true);
             Module.FS.mount(BFS, {root: '/'}, '/library');
         }
