@@ -15,9 +15,11 @@ onmessage = (e) => {
             const opts = (req as StartWorkerReq).opts;
 
             const loadJs = (url) => new Promise((resolve) => { importScripts(url); resolve(); });
+            const loadOleanMap = (url) => fetch(url).then((res) => res.ok && res.json());
 
             conn = new InProcessTransport(() => loadJsOrWasm(opts, loadJs),
-                loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256).connect();
+                loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256,
+                () => loadOleanMap(opts.libraryZip.slice(0, -3) + 'olean_map.json')).connect();
             conn.jsonMessage.on((msg) => postMessage(msg));
             conn.error.on((error) => postMessage({response: 'webworker-error', error} as ErrorRes));
             break;

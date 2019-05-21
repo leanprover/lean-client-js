@@ -10,12 +10,17 @@ declare const Module: any;
 export class InProcessTransport implements Transport {
     private loadJs: () => Promise<any>;
     private memoryMB: number;
-    private libraryZip: Promise<Buffer>;
+    private libraryZip: Promise<Library>;
+    private loadOlean: () => Promise<any>;
+    private oleanMap: any;
+    private info: any;
 
-    constructor(loadJs: () => Promise<any>, libraryZip: Promise<Buffer>, memoryMB: number) {
+    constructor(loadJs: () => Promise<any>, libraryZip: Promise<Library>, memoryMB: number,
+                loadOlean: () => Promise<any>) {
         this.loadJs = loadJs;
         this.libraryZip = libraryZip;
         this.memoryMB = memoryMB;
+        this.loadOlean = loadOlean;
     }
 
     connect(): Connection {
@@ -31,9 +36,23 @@ export class InProcessTransport implements Transport {
 
         Module.print = (text: string) => {
             try {
-                conn.jsonMessage.fire(JSON.parse(text));
+                const msg = JSON.parse(text);
+                // replace 'source' fields using olean_map.json if possible
+                if (this.oleanMap && this.info) {
+                    // info response
+                    if (msg.record && msg.record.source && msg.record.source.file) {
+                        msg.record.source.file = this.getUrl(msg.record.source.file);
+                    } else if (msg.results && !msg.file) { // search response
+                        for (let i = 0; i < msg.results.length; i++) {
+                            if (msg.results[i].source && msg.results[i].source.file) {
+                                msg.results[i].source.file = this.getUrl(msg.results[i].source.file);
+                            }
+                        }
+                    }
+                }
+                conn.jsonMessage.fire(msg);
             } catch (e) {
-                conn.error.fire({error: 'connect', message: `cannot parse: ${text}`});
+                conn.error.fire({error: 'connect', message: `cannot parse: ${text}, error: ${e}`});
             }
         };
         Module.printErr = (text: string) => conn.error.fire({error: 'stderr', chunk: text});
@@ -53,7 +72,14 @@ export class InProcessTransport implements Transport {
         return conn;
     }
 
+    private getUrl(sourceFile: string): string {
+        const file = sourceFile.slice(9, -5); // remove '/library/' prefix and '.lean'
+        return this.info[this.oleanMap[file]] + file + '.lean';
+    }
+
     private async init(emscriptenInitialized: Promise<{}>): Promise<any> {
+        const [loadJs, inited, library, oleanMap] = await Promise.all(
+            [this.loadJs(), emscriptenInitialized, this.libraryZip, this.loadOlean()]);
         if (library) {
             const libraryFS = await new Promise<ZipFS>((resolve, reject) =>
                 ZipFS.Create({zipData: library.zipBuffer},
@@ -63,8 +89,9 @@ export class InProcessTransport implements Transport {
             const BFS = new EmscriptenFS(Module.FS, Module.PATH, Module.ERRNO_CODES, BrowserFS);
             Module.FS.createFolder(Module.FS.root, 'library', true, true);
             Module.FS.mount(BFS, {root: '/'}, '/library');
+            this.info = library.urls;
         }
-
+        this.oleanMap = oleanMap;
         (Module.lean_init || Module._lean_init)();
         console.log('lean server initialized.');
         return Module;
@@ -139,14 +166,45 @@ export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<
     }
 }
 
-export function loadBufferFromURL(url: string): Promise<Buffer> {
-    return new Promise<Buffer>((resolve, reject) => {
+interface Library {
+    zipBuffer: Buffer;
+    urls?: {};
+}
+function loadInfoJson(infoUrl: string): Promise<string> {
+    // if this fails let's continue (we just won't be able to resolve lean files to github)
+    return new Promise<string>((resolve, reject) => {
+        const req = new XMLHttpRequest();
+        req.responseType = 'text';
+        req.open('GET', infoUrl);
+        req.onloadend = (e) => {
+            if (req.status === 200) {
+                resolve(req.responseText);
+            } else {
+                console.log(`could not fetch ${infoUrl}: http code ${req.status} ${req.statusText}`);
+                resolve(null);
+            }
+        };
+        req.onerror = (e) => {
+            console.log(`error fetching ${infoUrl}: ${e}`);
+            resolve(null);
+        };
+        req.send();
+    });
+}
+
+export function loadBufferFromURL(url: string, needUrls?: boolean): Promise<Library> {
+    return new Promise<Library>((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.responseType = 'arraybuffer';
         req.open('GET', url);
         req.onloadend = (e) => {
             if (req.status === 200) {
-                resolve(new Buffer(req.response as ArrayBuffer));
+                if (needUrls) {
+                    loadInfoJson(url.slice(0, -3) + 'info.json').then((urlstring) =>
+                        resolve({zipBuffer: new Buffer(req.response as ArrayBuffer), urls: JSON.parse(urlstring)}));
+                } else {
+                    resolve({zipBuffer: new Buffer(req.response as ArrayBuffer)});
+                }
             } else {
                 reject(`could not fetch ${url}: http code ${req.status} ${req.statusText}`);
             }
@@ -156,12 +214,7 @@ export function loadBufferFromURL(url: string): Promise<Buffer> {
     });
 }
 
-interface ResponseCacheHeaders {
-    contentLength: string;
-    etag: string;
-    lastModified: string;
-}
-export function loadBufferFromURLCached(url: string): Promise<Buffer> {
+export function loadBufferFromURLCached(url: string): Promise<Library> {
     if (!url) {
         return null;
     }
@@ -169,30 +222,13 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
         return null;
     }
     if (!('indexedDB' in self)) {
-        return loadBufferFromURL(url);
+        return loadBufferFromURL(url, true);
     }
     const filename = url.split('/').pop().split('.')[0];
-    const headPromise = new Promise<ResponseCacheHeaders>((resolve, reject) => {
-        const req = new XMLHttpRequest();
-        req.open('HEAD', url);
-        req.onreadystatechange = (e) => {
-            if (req.status === 200) {
-                const responseData: ResponseCacheHeaders = {
-                    contentLength: req.getResponseHeader('content-length'),
-                    etag: req.getResponseHeader('etag'),
-                    lastModified: req.getResponseHeader('last-modified'),
-                };
-                resolve(responseData);
-            } else {
-                reject(`could not fetch ${url}: http code ${req.status} ${req.statusText}`);
-            }
-        };
-        req.onerror = (e) => reject(e);
-        req.send();
-    });
+    const infoPromise = loadInfoJson(url.slice(0, -3) + 'info.json');
 
     const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-        const ver = 2;
+        const ver = 3;
         const dbRequest = indexedDB.open('leanlibrary', ver);
         dbRequest.onsuccess = (event) => {
             // console.log('opened indexedDB');
@@ -214,50 +250,49 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
         };
     });
 
-    const metaPromise = dbPromise.then((db) => new Promise<any>((resolve, reject) => {
+    const metaPromise = dbPromise.then((db) => new Promise<string>((resolve, reject) => {
         const trans = db.transaction('meta').objectStore('meta').get(filename);
         trans.onsuccess = (event) => {
-            // console.log('retrieved header from cache', trans.result);
+            // console.log('retrieved info.json from cache', trans.result);
             resolve(trans.result);
         };
         trans.onerror = (event) => {
-            console.log(`error getting header for ${filename} from cache`);
+            console.log(`error getting info.json for ${filename} from cache`);
             reject(trans.error);
         };
     }));
 
-    return Promise.all([headPromise, dbPromise, metaPromise])
+    return Promise.all([infoPromise, dbPromise, metaPromise])
         .then(([response, db, meta]) => {
-            if (!meta || (meta.contentLength !== response.contentLength)
-            || (meta.etag !== response.etag)
-            || (meta.lastModified !== response.lastModified)) {
+            // TODO: better comparison between info.json and its cached version
+            if (!meta || (meta !== response)) {
                 // cache miss
                 // console.log('cache miss!');
                 const buffPromise = loadBufferFromURL(url);
                 // assume that the file hasn't changed since head request...
                 const metaUpdatePromise = new Promise<any>((res, rej) => {
-                    // console.log('saving header to cache');
+                    // console.log('saving info.json to cache');
                     const trans = db.transaction('meta', 'readwrite').objectStore('meta')
                         .put(response, filename);
                     trans.onsuccess = (event) => {
-                        // console.log('saved header to cache');
+                        // console.log('saved info.json to cache');
                         res(trans.result);
                     };
                     trans.onerror = (event) => {
-                        console.log(`error saving header for ${filename} from cache`, event);
+                        console.log(`error saving info.json for ${filename} to cache`, event);
                         rej(trans.error);
                     };
                 });
                 return Promise.all([buffPromise, metaUpdatePromise])
                     .then(([buff, metaUpdate]) => {
-                        return new Promise<Buffer>((res, rej) => {
+                        return new Promise<Library>((res, rej) => {
                             // save buffer to cache
                             // console.log('saving library to cache');
                             const trans = db.transaction('library', 'readwrite').objectStore('library')
-                                .put(buff, filename);
+                                .put(buff.zipBuffer, filename);
                             trans.onsuccess = (event) => {
                                 // console.log('saved library to cache');
-                                res(buff);
+                                res({zipBuffer: buff.zipBuffer, urls: JSON.parse(response)});
                             };
                             trans.onerror = (event) => {
                                 console.log(`error saving ${filename} to cache`, event);
@@ -267,24 +302,31 @@ export function loadBufferFromURLCached(url: string): Promise<Buffer> {
                     });
             }
             // cache hit: pretend that the meta and library stores are always in sync
-            return new Promise<Buffer>((res, rej) => {
+            return new Promise<Library>((res, rej) => {
                 // console.log('cache hit!');
                 const trans = db.transaction('library').objectStore('library')
                     .get(filename);
                 trans.onsuccess = (event) => {
                     // console.log('retrieved library from cache', trans.result);
-                    res(new Buffer(trans.result));
+                    res({zipBuffer: new Buffer(trans.result), urls: JSON.parse(response)});
                 };
                 trans.onerror = (event) => {
                     console.log(`error getting ${filename} from cache`, event);
                     rej(trans.error);
                 };
             });
+        },
+        (reason) => {
+            console.log(`error in caching: ${reason}, falling back to uncached download`);
+            return loadBufferFromURL(url, true);
         });
 }
 
 export class BrowserInProcessTransport extends InProcessTransport {
     constructor(opts: LeanJsOpts) {
-        super(() => loadJsOrWasm(opts, loadJsBrowser), loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256);
+        const loadOleanMap = (url) => fetch(url).then((res) => res.ok && res.json());
+
+        super(() => loadJsOrWasm(opts, loadJsBrowser), loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256,
+        () => loadOleanMap(opts.libraryZip.slice(0, -3) + 'olean_map.json'));
     }
 }
