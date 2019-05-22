@@ -166,7 +166,7 @@ export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<
     }
 }
 
-interface Library {
+export interface Library {
     zipBuffer: Buffer;
     urls?: {};
 }
