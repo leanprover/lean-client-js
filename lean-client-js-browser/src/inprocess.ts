@@ -74,7 +74,8 @@ export class InProcessTransport implements Transport {
 
     private getUrl(sourceFile: string): string {
         const file = sourceFile.slice(9, -5); // remove '/library/' prefix and '.lean'
-        return this.info[this.oleanMap[file]] + file + '.lean';
+        const url = this.info[this.oleanMap[file]];
+        return url ? url + file + '.lean' : sourceFile;
     }
 
     private async init(emscriptenInitialized: Promise<{}>): Promise<any> {
