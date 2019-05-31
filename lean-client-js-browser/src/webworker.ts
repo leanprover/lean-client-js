@@ -19,13 +19,14 @@ export class WebWorkerTransport implements Transport {
         const conn = new WebWorkerConnection(worker);
         worker.onmessage = (e) => {
             const res = e.data as Res;
-            switch (res.response) {
-                case 'error': {
-                    conn.error.fire(res as any);
-                    break;
-                }
-                default: conn.jsonMessage.fire(res);
-            }
+            conn.jsonMessage.fire(res);
+            // switch (res.response) {
+            //     case 'error': {
+            //         conn.error.fire(res as any);
+            //         break;
+            //     }
+            //     default: conn.jsonMessage.fire(res);
+            // }
         };
         return conn;
     }
