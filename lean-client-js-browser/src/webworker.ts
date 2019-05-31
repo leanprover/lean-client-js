@@ -20,7 +20,10 @@ export class WebWorkerTransport implements Transport {
         worker.onmessage = (e) => {
             const res = e.data as Res;
             switch (res.response) {
-                case 'error': conn.error.fire((res as ErrorRes).error); break;
+                case 'error': {
+                    conn.error.fire(res as any);
+                    break;
+                }
                 default: conn.jsonMessage.fire(res);
             }
         };
@@ -29,6 +32,8 @@ export class WebWorkerTransport implements Transport {
 }
 
 export class WebWorkerConnection implements Connection {
+    // TODO: type issue here; not all errors are TransportErrors
+    // try e.g. server.info() with a missing file
     error: Event<TransportError> = new Event();
     jsonMessage: Event<any> = new Event();
     alive: boolean = true;
