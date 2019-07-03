@@ -48,6 +48,12 @@ export class InProcessTransport implements Transport {
                                 msg.results[i].source.file = this.getUrl(msg.results[i].source.file);
                             }
                         }
+                    } else if (msg.completions) { // completion response
+                        for (let i = 0; i < msg.completions.length; i++) {
+                            if (msg.completions[i].source && msg.completions[i].source.file) {
+                                msg.completions[i].source.file = this.getUrl(msg.completions[i].source.file);
+                            }
+                        }
                     }
                 }
                 conn.jsonMessage.fire(msg);

@@ -22,6 +22,7 @@ window.onload = () => {
     const server = new lean.Server(transport);
     server.error.on((err) => console.log('error:', err));
     server.allMessages.on((allMessages) => console.log('messages:', allMessages.msgs));
+     // emscripten lean never fires 'tasks' (requires MULTI_THREAD)
     server.tasks.on((currentTasks) => console.log('tasks:', currentTasks.tasks));
 
     (self as any).server = server; // allow debugging from the console

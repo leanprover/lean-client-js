@@ -6,6 +6,6 @@ You will need to place the files from the Lean emscripten build (downloadable fr
 
 To build the demo file, you may run `npm run demo` from the parent `lean-client-js` directory. The demo file can be written to `dist/demo.html`, by following the instructions below.
 
-This package can also be built as a standalone UMD module. Run `../node_modules/.bin/webpack` from this directory. A test file `dist/lib_test.html` will be built.
+Run `../node_modules/.bin/webpack` from this directory will build and output the test file `dist/lib_test.html` as well as a UMD module `dist/leanBrowser.js` for use in webpages.
 
 Once the files are built, you can check them out by starting a local web server and navigating to `/index.html` or `/lib_test.html`.
