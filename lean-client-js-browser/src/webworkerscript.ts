@@ -1,7 +1,7 @@
 // import 'babel-polyfill';
 import {Connection} from 'lean-client-js-core';
 import {InProcessTransport, loadBufferFromURLCached, loadJsOrWasm} from './inprocess';
-import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';
+import {ErrorRes, Req, StartWorkerReq} from './webworkertypes';
 // could also get types from 'webworker' in tsconfig
 declare function importScripts(...urls: string[]): void;
 declare function postMessage(message: any, transfer?: any[]): void;

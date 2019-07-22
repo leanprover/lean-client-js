@@ -4,6 +4,7 @@ import ZipFS from 'browserfs/dist/node/backend/ZipFS';
 import FS from 'browserfs/dist/node/core/FS';
 import EmscriptenFS from 'browserfs/dist/node/generic/emscripten_fs';
 import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
+import {LeanJsOpts, LeanJsUrls} from './inprocesstypes';
 
 declare const Module: any;
 
@@ -127,19 +128,6 @@ class InProcessConnection implements Connection {
     }
 
     dispose() {}
-}
-
-export interface LeanJsUrls {
-    libraryZip?: string;
-
-    javascript?: string;
-
-    webassemblyWasm?: string;
-    webassemblyJs?: string;
-}
-
-export interface LeanJsOpts extends LeanJsUrls {
-    memoryMB?: number;
 }
 
 function waitForBody(): Promise<any> {
@@ -329,11 +317,12 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
         });
 }
 
-export class BrowserInProcessTransport extends InProcessTransport {
-    constructor(opts: LeanJsOpts) {
-        const loadOleanMap = (url) => fetch(url).then((res) => res.ok && res.json());
+// export class BrowserInProcessTransport extends InProcessTransport {
+//     constructor(opts: LeanJsOpts) {
+//         const loadOleanMap = (url) => fetch(url).then((res) => res.ok && res.json());
 
-        super(() => loadJsOrWasm(opts, loadJsBrowser), loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256,
-        () => loadOleanMap(opts.libraryZip.slice(0, -3) + 'olean_map.json'));
-    }
-}
+//         super(() => loadJsOrWasm(opts, loadJsBrowser),
+//         loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256,
+//         () => loadOleanMap(opts.libraryZip.slice(0, -3) + 'olean_map.json'));
+//     }
+// }

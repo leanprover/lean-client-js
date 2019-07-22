@@ -1,3 +1,3 @@
 export * from 'lean-client-js-core';
-export * from './inprocess';
+export {LeanJsOpts} from './inprocesstypes';
 export * from './webworker';

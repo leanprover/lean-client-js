@@ -1,7 +1,7 @@
 import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
-import {LeanJsOpts} from './inprocess';
+import {LeanJsOpts} from './inprocesstypes';
 import Worker from './webworkerscript';
-import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';
+import {Res, StartWorkerReq} from './webworkertypes';
 
 export class WebWorkerTransport implements Transport {
     opts: LeanJsOpts;

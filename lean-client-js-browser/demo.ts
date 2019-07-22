@@ -15,10 +15,10 @@ window.onload = () => {
         libraryZip: prefix + '/library.zip',
     };
 
-    const transport =
-        (window as any).Worker ?
-            new lean.WebWorkerTransport(opts) :
-            new lean.BrowserInProcessTransport(opts);
+    const transport = new lean.WebWorkerTransport(opts);
+        // (window as any).Worker ?
+        //     new lean.WebWorkerTransport(opts) :
+        //     new lean.BrowserInProcessTransport(opts);
     const server = new lean.Server(transport);
     server.error.on((err) => console.log('error:', err));
     server.allMessages.on((allMessages) => console.log('messages:', allMessages.msgs));
