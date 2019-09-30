@@ -130,25 +130,6 @@ class InProcessConnection implements Connection {
     dispose() {}
 }
 
-function waitForBody(): Promise<any> {
-    return new Promise((resolve, reject) => {
-        if (document.body) {
-            resolve();
-        } else {
-            window.onload = resolve;
-        }
-    });
-}
-
-export function loadJsBrowser(url: string): Promise<any> {
-    return waitForBody().then(() => new Promise<any>((resolve, reject) => {
-        const script = document.createElement('script');
-        script.onload = resolve;
-        script.src = url;
-        document.body.appendChild(script);
-    }));
-}
-
 export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<any>): Promise<any> {
     if ((self as any).WebAssembly && urls.webassemblyJs && urls.webassemblyWasm) {
         // Module.wasmBinaryFile = urls.webassemblyWasm; // deprecated!
@@ -263,23 +244,7 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
             if (!meta || (meta !== response)) {
                 // cache miss
                 // console.log('cache miss!');
-                const buffPromise = loadBufferFromURL(url);
-                // assume that the file hasn't changed since head request...
-                const metaUpdatePromise = new Promise<any>((res, rej) => {
-                    // console.log('saving info.json to cache');
-                    const trans = db.transaction('meta', 'readwrite').objectStore('meta')
-                        .put(response, filename);
-                    trans.onsuccess = (event) => {
-                        // console.log('saved info.json to cache');
-                        res(trans.result);
-                    };
-                    trans.onerror = (event) => {
-                        console.log(`error saving info.json for ${filename} to cache`, event);
-                        rej(trans.error);
-                    };
-                });
-                return Promise.all([buffPromise, metaUpdatePromise])
-                    .then(([buff, metaUpdate]) => {
+                return loadBufferFromURL(url).then((buff) => {
                         return new Promise<Library>((res, rej) => {
                             // save buffer to cache
                             // console.log('saving library to cache');
@@ -294,7 +259,21 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
                                 rej(trans.error);
                             };
                         });
-                    });
+                    // write info.json to cache after library is cached
+                    }).then((buff) => new Promise<Library>((res, rej) => {
+                        // console.log('saving info.json to cache');
+                        const trans = db.transaction('meta', 'readwrite').objectStore('meta')
+                            .put(response, filename);
+                        trans.onsuccess = (event) => {
+                            // console.log('saved info.json to cache');
+                            // returns library buffer, not trans.result
+                            res(buff);
+                        };
+                        trans.onerror = (event) => {
+                            console.log(`error saving info.json for ${filename} to cache`, event);
+                            rej(trans.error);
+                        };
+                    }));
             }
             // cache hit: pretend that the meta and library stores are always in sync
             return new Promise<Library>((res, rej) => {
@@ -316,13 +295,3 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
             return loadBufferFromURL(url, true);
         });
 }
-
-// export class BrowserInProcessTransport extends InProcessTransport {
-//     constructor(opts: LeanJsOpts) {
-//         const loadOleanMap = (url) => fetch(url).then((res) => res.ok && res.json());
-
-//         super(() => loadJsOrWasm(opts, loadJsBrowser),
-//         loadBufferFromURLCached(opts.libraryZip), opts.memoryMB || 256,
-//         () => loadOleanMap(opts.libraryZip.slice(0, -3) + 'olean_map.json'));
-//     }
-// }
