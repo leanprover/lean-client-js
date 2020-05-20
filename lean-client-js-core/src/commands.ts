@@ -252,11 +252,11 @@ export interface WidgetEventHandler {
 
 export interface WidgetElement {
     /** tag */
-    t: 'div' | 'span' | 'hr' | 'button' | 'input'; // ... etc ... any string
+    t: string;
     /** children */
     c: WidgetHtml[];
     /** attributes */
-    a: { [k: string]: any } | null;
+    a?: { [k: string]: any };
     /** events */
     e: {
         'onClick'?: WidgetEventHandler;

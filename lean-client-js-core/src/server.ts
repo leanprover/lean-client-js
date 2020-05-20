@@ -158,8 +158,7 @@ export class Server {
                 if (seq_num) {
                     const newSeqNum = this.parent.currentSeqNum++;
                     // tell the parent to do nothing when it gets this seq num.
-                    const p = new Promise((res, reject) =>
-                      this.parent.sentRequests.set(newSeqNum, {resolve : res, reject}));
+                    this.parent.sentRequests.set(newSeqNum, {resolve: (res) => (), reject: (err) => ()}));
                     this.translate.set(newSeqNum, seq_num);
                     this.parent.conn.send({seq_num : newSeqNum, ...req});
                 } else {
