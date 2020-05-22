@@ -8,6 +8,18 @@ import {LeanJsOpts, LeanJsUrls} from './inprocesstypes';
 
 declare const Module: any;
 
+export interface Library {
+    /**
+     * Buffer containing library.zip
+     */
+    zipBuffer: Buffer;
+    /**
+     * From library.info.json, contains a map from Lean package names to
+     * URL prefixes that point to the Lean source of the olean files
+     */
+    urls?: {};
+}
+
 export class InProcessTransport implements Transport {
     private loadJs: () => Promise<any>;
     private memoryMB: number;
@@ -86,7 +98,7 @@ export class InProcessTransport implements Transport {
     }
 
     private async init(emscriptenInitialized: Promise<{}>): Promise<any> {
-        const [loadJs, inited, library, oleanMap] = await Promise.all(
+        const [loadJs, inited, library, oleanMap]: [any, any, Library, any] = await Promise.all(
             [this.loadJs(), emscriptenInitialized, this.libraryZip, this.loadOlean()]);
         if (library) {
             const libraryFS = await new Promise<ZipFS>((resolve, reject) =>
@@ -142,10 +154,6 @@ export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<
     }
 }
 
-export interface Library {
-    zipBuffer: Buffer;
-    urls?: {};
-}
 function loadInfoJson(infoUrl: string): Promise<string> {
     // if this fails let's continue (we just won't be able to resolve lean files to github)
     return new Promise<string>((resolve, reject) => {
@@ -168,7 +176,7 @@ function loadInfoJson(infoUrl: string): Promise<string> {
     });
 }
 
-export function loadBufferFromURL(url: string, needUrls?: boolean): Promise<Library> {
+export function loadBufferFromURL(url: string, metaUrl: string, needUrls?: boolean): Promise<Library> {
     return new Promise<Library>((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.responseType = 'arraybuffer';
@@ -176,8 +184,8 @@ export function loadBufferFromURL(url: string, needUrls?: boolean): Promise<Libr
         req.onloadend = (e) => {
             if (req.status === 200) {
                 if (needUrls) {
-                    loadInfoJson(url.slice(0, -3) + 'info.json').then((urlstring) =>
-                        resolve({zipBuffer: new Buffer(req.response as ArrayBuffer), urls: JSON.parse(urlstring)}));
+                    loadInfoJson(metaUrl).then((info) =>
+                        resolve({zipBuffer: new Buffer(req.response as ArrayBuffer), urls: JSON.parse(info)}));
                 } else {
                     resolve({zipBuffer: new Buffer(req.response as ArrayBuffer)});
                 }
@@ -190,22 +198,35 @@ export function loadBufferFromURL(url: string, needUrls?: boolean): Promise<Libr
     });
 }
 
-export function loadBufferFromURLCached(url: string): Promise<Library> {
+export function loadBufferFromURLCached(
+        url: string,
+        metaUrl: string,
+        libKey: string,
+        dbName: string,
+    ): Promise<Library> {
     if (!url) {
         return null;
     }
     if (!url.toLowerCase().endsWith('.zip')) {
         return null;
     }
-    if (!('indexedDB' in self)) {
-        return loadBufferFromURL(url, true);
+    if (!metaUrl) {
+        metaUrl = url.slice(0, -3) + 'info.json';
     }
-    const filename = url.split('/').pop().split('.')[0];
-    const infoPromise = loadInfoJson(url.slice(0, -3) + 'info.json');
+    if (!('indexedDB' in self)) {
+        return loadBufferFromURL(url, metaUrl, true);
+    }
+    if (!libKey) {
+        libKey = url.split('/').pop().slice(0, -4);
+    }
+    const infoPromise = loadInfoJson(metaUrl);
 
+    if (!dbName) {
+        dbName = 'leanlibrary';
+    }
     const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
         const ver = 3;
-        const dbRequest = indexedDB.open('leanlibrary', ver);
+        const dbRequest = indexedDB.open(dbName, ver);
         dbRequest.onsuccess = (event) => {
             // console.log('opened indexedDB');
             resolve(dbRequest.result);
@@ -227,13 +248,13 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
     });
 
     const metaPromise = dbPromise.then((db) => new Promise<string>((resolve, reject) => {
-        const trans = db.transaction('meta').objectStore('meta').get(filename);
+        const trans = db.transaction('meta').objectStore('meta').get(libKey);
         trans.onsuccess = (event) => {
             // console.log('retrieved info.json from cache', trans.result);
             resolve(trans.result);
         };
         trans.onerror = (event) => {
-            console.log(`error getting info.json for ${filename} from cache`);
+            console.log(`error getting info.json for ${libKey} from cache`);
             reject(trans.error);
         };
     }));
@@ -244,18 +265,18 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
             if (!meta || (meta !== response)) {
                 // cache miss
                 // console.log('cache miss!');
-                return loadBufferFromURL(url).then((buff) => {
+                return loadBufferFromURL(url, metaUrl).then((buff) => {
                         return new Promise<Library>((res, rej) => {
                             // save buffer to cache
                             // console.log('saving library to cache');
                             const trans = db.transaction('library', 'readwrite').objectStore('library')
-                                .put(buff.zipBuffer, filename);
+                                .put(buff.zipBuffer, libKey);
                             trans.onsuccess = (event) => {
                                 // console.log('saved library to cache');
                                 res({zipBuffer: buff.zipBuffer, urls: JSON.parse(response)});
                             };
                             trans.onerror = (event) => {
-                                console.log(`error saving ${filename} to cache`, event);
+                                console.log(`error saving ${libKey} to cache`, event);
                                 rej(trans.error);
                             };
                         });
@@ -263,14 +284,14 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
                     }).then((buff) => new Promise<Library>((res, rej) => {
                         // console.log('saving info.json to cache');
                         const trans = db.transaction('meta', 'readwrite').objectStore('meta')
-                            .put(response, filename);
+                            .put(response, libKey);
                         trans.onsuccess = (event) => {
                             // console.log('saved info.json to cache');
                             // returns library buffer, not trans.result
                             res(buff);
                         };
                         trans.onerror = (event) => {
-                            console.log(`error saving info.json for ${filename} to cache`, event);
+                            console.log(`error saving info.json for ${libKey} to cache`, event);
                             rej(trans.error);
                         };
                     }));
@@ -279,19 +300,19 @@ export function loadBufferFromURLCached(url: string): Promise<Library> {
             return new Promise<Library>((res, rej) => {
                 // console.log('cache hit!');
                 const trans = db.transaction('library').objectStore('library')
-                    .get(filename);
+                    .get(libKey);
                 trans.onsuccess = (event) => {
                     // console.log('retrieved library from cache', trans.result);
                     res({zipBuffer: new Buffer(trans.result), urls: JSON.parse(response)});
                 };
                 trans.onerror = (event) => {
-                    console.log(`error getting ${filename} from cache`, event);
+                    console.log(`error getting ${libKey} from cache`, event);
                     rej(trans.error);
                 };
             });
         },
         (reason) => {
             console.log(`error in caching: ${reason}, falling back to uncached download`);
-            return loadBufferFromURL(url, true);
+            return loadBufferFromURL(url, metaUrl, true);
         });
 }

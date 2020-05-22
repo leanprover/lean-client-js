@@ -13,6 +13,11 @@ window.onload = () => {
         webassemblyJs: prefix + '/lean_js_wasm.js',
         webassemblyWasm: prefix + '/lean_js_wasm.wasm',
         libraryZip: prefix + '/library.zip',
+        // Uncomment to test optional fields
+        // libraryMeta: prefix + '/library.info.json',
+        // libraryOleanMap: prefix + '/library.olean_map.json',
+        // dbName: 'leanlib2',
+        // libraryKey: 'lib'
     };
 
     const transport = new lean.WebWorkerTransport(opts);

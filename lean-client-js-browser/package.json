@@ -1,6 +1,6 @@
 {
   "name": "@bryangingechen/lean-client-js-browser",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "Fork of lean-client-js-browser: Interface to the Lean server",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -21,7 +21,9 @@
     "name": "Bryan Gin-ge Chen",
     "email": "bryangingechen@gmail.com"
   },
-  "contributors": ["Gabriel Ebner <gebner@gebner.org>"],
+  "contributors": [
+    "Gabriel Ebner <gebner@gebner.org>"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/bryangingechen/lean-client-js"
