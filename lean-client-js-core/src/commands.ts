@@ -99,6 +99,12 @@ export interface InfoSource {
 
 export type GoalState = string;
 
+export interface WidgetData {
+    html: WidgetComponent;
+    line: number;
+    column: number;
+}
+
 export interface InfoRecord {
     'full-id'?: string;
     text?: string;
@@ -107,6 +113,7 @@ export interface InfoRecord {
     source?: InfoSource;
     tactic_params?: string[];
     state?: GoalState;
+    widget?: WidgetData;
 }
 
 export interface InfoResponse extends CommandResponse {
@@ -210,4 +217,77 @@ export interface SleepRequest extends Request {
 
 export interface LongSleepRequest extends Request {
     command: 'long_sleep';
+}
+
+interface WidgetEventRecordSuccess {
+    status: 'success';
+    widget: WidgetData;
+}
+
+interface WidgetEventRecordEdit {
+    status: 'edit';
+    widget: WidgetData;
+    /** Some text to insert after the widget's comma. */
+    action: string;
+}
+
+interface WidgetEventRecordInvalid {
+    status: 'invalid_handler';
+}
+interface WidgetEventRecordError {
+    status: 'error';
+    message: string;
+}
+
+export type WidgetEventRecord =
+    | WidgetEventRecordSuccess
+    | WidgetEventRecordInvalid
+    | WidgetEventRecordEdit
+    | WidgetEventRecordError;
+
+export interface WidgetEventResponse extends CommandResponse {
+    record: WidgetEventRecord;
+}
+
+export interface WidgetEventHandler {
+    /** handler id */
+    h: number;
+    /** route */
+    r: number[];
+}
+
+export interface WidgetElement {
+    /** tag */
+    t: string;
+    /** children */
+    c: WidgetHtml[];
+    /** attributes */
+    a?: { [k: string]: any };
+    /** events */
+    e: {
+        'onClick'?: WidgetEventHandler;
+        'onMouseEnter'?: WidgetEventHandler;
+        'onMouseLeave'?: WidgetEventHandler;
+    };
+    /** tooltip */
+    tt?: WidgetHtml;
+}
+export interface WidgetComponent {
+    /** children */
+    c: WidgetHtml[];
+}
+export type WidgetHtml =
+    | WidgetComponent
+    | string
+    | WidgetElement
+    | null;
+
+export interface WidgetEventRequest extends Request {
+    command: 'widget_event';
+    kind: 'onClick' | 'onMouseEnter' | 'onMouseLeave' | 'onChange';
+    handler: WidgetEventHandler;
+    args: { type: 'unit' } | { type: 'string'; value: string };
+    file_name: string;
+    line: number;
+    column: number;
 }

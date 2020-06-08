@@ -1,7 +1,8 @@
 import {AdditionalMessageResponse, AllHoleCommandsRequest, AllHoleCommandsResponse, AllMessagesResponse,
     CheckingMode, CommandResponse, CompleteRequest, CompleteResponse, CurrentTasksResponse,
     ErrorResponse, FileRoi, HoleCommandsRequest, HoleCommandsResponse, HoleRequest, HoleResponse, InfoRequest,
-    InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse, SyncRequest} from './commands';
+    InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse, SyncRequest,
+    WidgetEventRequest, WidgetEventResponse} from './commands';
 import {Event} from './event';
 import {Connection, Transport, TransportError} from './transport';
 
@@ -46,6 +47,7 @@ export class Server {
     }
 
     send(req: InfoRequest): Promise<InfoResponse>;
+    send(req: WidgetEventRequest): Promise<WidgetEventResponse>;
     send(req: CompleteRequest): Promise<CompleteResponse>;
     send(req: SyncRequest): Promise<CommandResponse>;
     send(req: RoiRequest): Promise<CommandResponse>;
@@ -118,6 +120,60 @@ export class Server {
 
             this.conn = null;
         }
+    }
+
+    /** Creates a Transport that utilises the same Connection as this server (but without seq_num clashes).
+     * This is useful if you have a need for multiple `Server` objects using the same underlying lean process.
+     * This happens, for example, in the vscode extension where there is a Server instance in the InfoView
+     * and a Server instance in the extension.
+     */
+    makeProxyTransport(): Transport {
+        class ProxyConnection implements Connection {
+            error: Event<TransportError> = new Event();
+            jsonMessage: Event<any> = new Event();
+            private subscriptions: Array<{dispose()}> = [];
+            private translate: Map<number, number> = new Map();
+            constructor(private parent: Server) {
+                this.subscriptions.push(
+                    this.error,
+                    this.jsonMessage,
+                    this.parent.conn.jsonMessage.on((x) => {
+                        if (x.seq_num) {
+                            const {seq_num, ...rest} = x;
+                            const oldSeqNum = this.translate.get(seq_num);
+                            if (seq_num !== undefined) {
+                                this.translate.delete(seq_num);
+                                this.jsonMessage.fire({seq_num : oldSeqNum, ...rest});
+                            }
+                        } else {
+                            this.jsonMessage.fire(x);
+                        }
+                    }),
+                    parent.conn.error.on((x) => this.error.fire(x)),
+                );
+            }
+            get alive() { return this.parent.alive(); }
+            send(jsonMsg: any) {
+                const {seq_num, ...req} = jsonMsg;
+                if (seq_num) {
+                    const newSeqNum = this.parent.currentSeqNum++;
+                    // tell the parent to do nothing when it gets this seq num.
+                    this.parent.sentRequests.set(newSeqNum, {resolve: (res) => (), reject: (err) => ()}));
+                    this.translate.set(newSeqNum, seq_num);
+                    this.parent.conn.send({seq_num : newSeqNum, ...req});
+                } else {
+                    throw new Error('expected message to have a seq num');
+                }
+            }
+            dispose() {
+                for (const s of this.subscriptions) {
+                    s.dispose();
+                }
+            }
+        }
+        return {
+            connect : () => new ProxyConnection(this),
+        };
     }
 
     private onMessage(msg: any) {
