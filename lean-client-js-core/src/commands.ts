@@ -219,22 +219,22 @@ export interface LongSleepRequest extends Request {
     command: 'long_sleep';
 }
 
-interface WidgetEventRecordSuccess {
+export interface WidgetEventRecordSuccess {
     status: 'success';
     widget: WidgetData;
 }
 
-interface WidgetEventRecordEdit {
+export interface WidgetEventRecordEdit {
     status: 'edit';
     widget: WidgetData;
     /** Some text to insert after the widget's comma. */
     action: string;
 }
 
-interface WidgetEventRecordInvalid {
+export interface WidgetEventRecordInvalid {
     status: 'invalid_handler';
 }
-interface WidgetEventRecordError {
+export interface WidgetEventRecordError {
     status: 'error';
     message: string;
 }
