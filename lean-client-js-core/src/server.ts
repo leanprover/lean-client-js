@@ -21,6 +21,7 @@ export interface UnrelatedError {
 export type ServerError = TransportError | UnrelatedError;
 
 export class Server {
+    jsonMessage: Event<any> = new Event();
     error: Event<ServerError> = new Event();
     allMessages: Event<AllMessagesResponse> = new Event();
     tasks: Event<CurrentTasksResponse> = new Event();
@@ -36,8 +37,9 @@ export class Server {
 
     connect() {
         this.conn = this.transport.connect();
-        this.conn.jsonMessage.on((msg) => this.onMessage(msg));
+        this.conn.jsonMessage.on((msg) => this.jsonMessage.fire(msg));
         this.conn.error.on((msg) => this.error.fire(msg));
+        this.jsonMessage.on((msg) => this.onMessage(msg));
     }
 
     // TODO(gabriel): restore roi & files on restart?
@@ -137,7 +139,7 @@ export class Server {
                 this.subscriptions.push(
                     this.error,
                     this.jsonMessage,
-                    this.parent.conn.jsonMessage.on((x) => {
+                    this.parent.jsonMessage.on((x) => {
                         if (x.seq_num) {
                             const {seq_num, ...rest} = x;
                             const oldSeqNum = this.translate.get(seq_num);
@@ -149,7 +151,8 @@ export class Server {
                             this.jsonMessage.fire(x);
                         }
                     }),
-                    parent.conn.error.on((x) => this.error.fire(x)),
+                    this.parent.error.on((x) =>
+                        this.error.fire(x.error == 'unrelated' ? { ...x, error: 'connect' } : x)),
                 );
             }
             get alive() { return this.parent.alive(); }
