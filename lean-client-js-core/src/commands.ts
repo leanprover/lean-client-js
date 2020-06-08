@@ -99,6 +99,12 @@ export interface InfoSource {
 
 export type GoalState = string;
 
+export interface WidgetData {
+    html: WidgetComponent;
+    line: number;
+    column: number;
+}
+
 export interface InfoRecord {
     'full-id'?: string;
     text?: string;
@@ -107,7 +113,7 @@ export interface InfoRecord {
     source?: InfoSource;
     tactic_params?: string[];
     state?: GoalState;
-    widget?: {html: WidgetComponent};
+    widget?: WidgetData;
 }
 
 export interface InfoResponse extends CommandResponse {
@@ -215,12 +221,12 @@ export interface LongSleepRequest extends Request {
 
 interface WidgetEventRecordSuccess {
     status: 'success';
-    widget: {html: WidgetComponent};
+    widget: WidgetData;
 }
 
 interface WidgetEventRecordEdit {
     status: 'edit';
-    widget: {html: WidgetComponent};
+    widget: WidgetData;
     /** Some text to insert after the widget's comma. */
     action: string;
 }
