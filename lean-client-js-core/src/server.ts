@@ -33,13 +33,14 @@ export class Server {
     private currentMessages: Message[] = [];
     private sentRequests: SentRequestsMap = new Map();
 
-    constructor(public transport: Transport) {}
+    constructor(public transport: Transport) {
+        this.jsonMessage.on((msg) => this.onMessage(msg));
+    }
 
     connect() {
         this.conn = this.transport.connect();
         this.conn.jsonMessage.on((msg) => this.jsonMessage.fire(msg));
         this.conn.error.on((msg) => this.error.fire(msg));
-        this.jsonMessage.on((msg) => this.onMessage(msg));
     }
 
     // TODO(gabriel): restore roi & files on restart?
