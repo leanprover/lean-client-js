@@ -130,50 +130,6 @@ export class Server {
      * and a Server instance in the extension.
      */
     makeProxyTransport(): Transport {
-        class ProxyConnection implements Connection {
-            error: Event<TransportError> = new Event();
-            jsonMessage: Event<any> = new Event();
-            private subscriptions: Array<{dispose()}> = [];
-            private translate: Map<number, number> = new Map();
-            constructor(private parent: Server) {
-                this.subscriptions.push(
-                    this.error,
-                    this.jsonMessage,
-                    this.parent.jsonMessage.on((x) => {
-                        if (x.seq_num) {
-                            const {seq_num, ...rest} = x;
-                            const oldSeqNum = this.translate.get(seq_num);
-                            if (seq_num !== undefined) {
-                                this.translate.delete(seq_num);
-                                this.jsonMessage.fire({seq_num : oldSeqNum, ...rest});
-                            }
-                        } else {
-                            this.jsonMessage.fire(x);
-                        }
-                    }),
-                    this.parent.error.on((x) =>
-                        this.error.fire(x.error == 'unrelated' ? { ...x, error: 'connect' } : x)),
-                );
-            }
-            get alive() { return this.parent.alive(); }
-            send(jsonMsg: any) {
-                const {seq_num, ...req} = jsonMsg;
-                if (seq_num) {
-                    const newSeqNum = this.parent.currentSeqNum++;
-                    // tell the parent to do nothing when it gets this seq num.
-                    this.parent.sentRequests.set(newSeqNum, { resolve: () => {}, reject: () => {} });
-                    this.translate.set(newSeqNum, seq_num);
-                    this.parent.conn.send({seq_num : newSeqNum, ...req});
-                } else {
-                    throw new Error('expected message to have a seq num');
-                }
-            }
-            dispose() {
-                for (const s of this.subscriptions) {
-                    s.dispose();
-                }
-            }
-        }
         return {
             connect : () => new ProxyConnection(this),
         };
@@ -208,6 +164,37 @@ export class Server {
         } else {
             // unrelated error
             this.error.fire({error: 'unrelated', message: msg.message || JSON.stringify(msg)});
+        }
+    }
+}
+
+export class ProxyConnection implements Connection {
+    error: Event<TransportError> = new Event();
+    jsonMessage: Event<any> = new Event();
+    private subscriptions: Array<{dispose()}> = [];
+    constructor(private parent: Server) {
+        this.subscriptions.push(
+            this.error,
+            this.jsonMessage,
+            this.parent.jsonMessage.on((x) => x.seq_num || this.jsonMessage.fire(x)),
+            this.parent.error.on((x) =>
+                this.error.fire(x.error == 'unrelated' ? { ...x, error: 'connect' } : x)),
+        );
+    }
+    get alive() { return this.parent.alive(); }
+    async send(jsonMsg: any) {
+        const seq_num = jsonMsg.seq_num;
+        try {
+            const result = await this.parent.send(jsonMsg);
+            this.jsonMessage.fire({ ...result, seq_num })
+        } catch (msg) {
+            const res: ErrorResponse = { response: 'error', message: msg, seq_num };
+            this.jsonMessage.fire(res);
+        }
+    }
+    dispose() {
+        for (const s of this.subscriptions) {
+            s.dispose();
         }
     }
 }
