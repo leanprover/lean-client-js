@@ -91,6 +91,18 @@ export interface InfoRequest extends Request {
     column: number;
 }
 
+export interface GetWidgetRequest extends Request {
+    command: 'get_widget';
+    file_name: string;
+    line: number;
+    column: number;
+    /** The widget root component id. */
+    id: number;
+}
+export interface GetWidgetResponse extends CommandResponse {
+    widget: WidgetData;
+}
+
 export interface InfoSource {
     line: number;
     column: number;
@@ -99,10 +111,16 @@ export interface InfoSource {
 
 export type GoalState = string;
 
-export interface WidgetData {
-    html: WidgetComponent;
+export interface WidgetIdentifier {
+    html?: WidgetComponent;
     line: number;
     column: number;
+    /** The widget root component id. */
+    id?: number;
+}
+
+export interface WidgetData extends WidgetIdentifier {
+    html: WidgetComponent;
 }
 
 export interface InfoRecord {
@@ -113,7 +131,7 @@ export interface InfoRecord {
     source?: InfoSource;
     tactic_params?: string[];
     state?: GoalState;
-    widget?: WidgetData;
+    widget?: WidgetIdentifier;
 }
 
 export interface InfoResponse extends CommandResponse {
@@ -290,4 +308,5 @@ export interface WidgetEventRequest extends Request {
     file_name: string;
     line: number;
     column: number;
+    id?: number;
 }
