@@ -2,7 +2,7 @@ import {AdditionalMessageResponse, AllHoleCommandsRequest, AllHoleCommandsRespon
     CheckingMode, CommandResponse, CompleteRequest, CompleteResponse, CurrentTasksResponse,
     ErrorResponse, FileRoi, HoleCommandsRequest, HoleCommandsResponse, HoleRequest, HoleResponse, InfoRequest,
     InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse, SyncRequest,
-    WidgetEventRequest, WidgetEventResponse} from './commands';
+    WidgetEventRequest, WidgetEventResponse, GetWidgetRequest, GetWidgetResponse} from './commands';
 import {Event} from './event';
 import {Connection, Transport, TransportError} from './transport';
 
@@ -50,6 +50,7 @@ export class Server {
     }
 
     send(req: InfoRequest): Promise<InfoResponse>;
+    send(req: GetWidgetRequest): Promise<GetWidgetResponse>;
     send(req: WidgetEventRequest): Promise<WidgetEventResponse>;
     send(req: CompleteRequest): Promise<CompleteResponse>;
     send(req: SyncRequest): Promise<CommandResponse>;
