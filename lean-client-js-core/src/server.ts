@@ -75,8 +75,8 @@ export class Server {
         return promise;
     }
 
-    info(file: string, line: number, column: number): Promise<InfoResponse> {
-        return this.send({command: 'info', file_name: file, line, column});
+    info(file: string, line: number, column: number, widgets = true): Promise<InfoResponse> {
+        return this.send({command: 'info', file_name: file, line, column, widgets});
     }
 
     sync(file: string, contents: string): Promise<CommandResponse> {

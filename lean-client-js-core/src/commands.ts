@@ -89,6 +89,8 @@ export interface InfoRequest extends Request {
     file_name: string;
     line: number;
     column: number;
+    /** if set to true, asks lean to also return widget information. */
+    widgets?: boolean;
 }
 
 export interface InfoSource {
