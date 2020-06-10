@@ -116,7 +116,7 @@ export interface WidgetIdentifier {
     line: number;
     column: number;
     /** The widget root component id. */
-    id: number;
+    id?: number;
 }
 
 export interface WidgetData extends WidgetIdentifier {
@@ -308,5 +308,5 @@ export interface WidgetEventRequest extends Request {
     file_name: string;
     line: number;
     column: number;
-    id: number;
+    id?: number;
 }
