@@ -18,6 +18,7 @@ export interface Message {
     severity: Severity;
     caption: string;
     text: string;
+    widget?: WidgetIdentifier;
 }
 
 export interface AllMessagesResponse extends Response {
