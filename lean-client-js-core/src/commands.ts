@@ -243,6 +243,7 @@ export type WidgetEffect =
 | {kind: 'reveal_position'; file_name: string; line: number; column: number}
 | {kind: 'highlight_position'; file_name: string; line: number; column: number}
 | {kind: 'clear_highlighting'}
+| {kind: 'copy_text'; text:string}
 | {kind: 'custom'; key: string; value: string}
 
 export interface WidgetEventRecordSuccess {
