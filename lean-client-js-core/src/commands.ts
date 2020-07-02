@@ -238,11 +238,20 @@ export interface LongSleepRequest extends Request {
     command: 'long_sleep';
 }
 
+export type WidgetEffect =
+| {kind: 'insert_text'; text: string}
+| {kind: 'reveal_position'; file_name: string; line: number; column: number}
+| {kind: 'highlight_position'; file_name: string; line: number; column: number}
+| {kind: 'clear_highlighting'}
+| {kind: 'custom'; key: string; value: string}
+
 export interface WidgetEventRecordSuccess {
     status: 'success';
     widget: WidgetData;
+    effects?: WidgetEffect[];
 }
 
+/** 3.15 ≤ lean.version ≤ 3.16 */
 export interface WidgetEventRecordEdit {
     status: 'edit';
     widget: WidgetData;
