@@ -7,7 +7,7 @@ npm run bootstrap
 npm run compile
 ```
 
-Next you'll need to download a suitable release of the Lean emscripten build (see the `lean-*-browser.zip` files [here](https://github.com/leanprover-community/lean-nightly/releases)) and copy the files within to `lean-client-js-browser/dist`. You may also need to build your own `library.zip` and associated meta files following the instructions [here](https://github.com/bryangingechen/lean-web-editor/#creating-a-customized-libraryzip).
+Next you'll need to download a suitable release of the Lean emscripten build (see the `lean-*-browser.zip` files [here](https://github.com/leanprover-community/lean-nightly/releases)) and copy the files within to `lean-client-js-browser/dist`. You may also need to build your own `library.zip` and associated meta files following the instructions [here](https://github.com/leanprover-community/lean-web-editor/#creating-a-customized-libraryzip).
 
 Then you can run:
 ```

@@ -4,8 +4,6 @@ This is a JavaScript library to interface with the server mode of the [Lean theo
 
 This package contains the web browser version. It communicates with an Emscripten build of Lean in a WebWorker, using WebAssembly if available.
 
-The [original version](https://github.com/leanprover/lean-client-js/tree/master/lean-client-js-browser) was authored by Gabriel Ebner.
-
 ## How to use
 
 You will need to place the files from the Lean Emscripten build (downloadable from [here](https://github.com/leanprover-community/lean-nightly/releases), see the `lean-*-browser.zip` files) and a suitable `.zip` bundle of `.olean` files (see instructions [here](https://github.com/leanprover-community/lean-web-editor/#creating-a-customized-libraryzip)) into a subdirectory of this directory called `dist/` for the demo files to work. The `library.zip` file is cached in IndexedDB to save on downloading, provided that its associated `library.info.json` is present at the same path.
@@ -39,9 +37,9 @@ Running `../node_modules/.bin/webpack` from this directory will build and output
 
 Once the files are built, you can check them out by starting a local web server (from the `dist/` directory) and navigating to `/index.html` or `/lib_test.html`.
 
-## About this fork
+## Changes in vXXX
 
-This version of `lean-client-js-browser` has two main differences from the original:
+This version of `lean-client-js-browser` has two main differences from versions before vXXX:
 
 1. First, it removes the `BrowserInProcessTransport` class which allowed running the Lean Emscripten server in the browser's main thread. You must use `WebWorkerTransport`, which runs the server in a WebWorker.
 

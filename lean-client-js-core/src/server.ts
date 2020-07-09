@@ -1,7 +1,8 @@
 import {AdditionalMessageResponse, AllHoleCommandsRequest, AllHoleCommandsResponse, AllMessagesResponse,
     CheckingMode, CommandResponse, CompleteRequest, CompleteResponse, CurrentTasksResponse,
     ErrorResponse, FileRoi, HoleCommandsRequest, HoleCommandsResponse, HoleRequest, HoleResponse, InfoRequest,
-    InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse, SyncRequest} from './commands';
+    InfoResponse, Message, Request, RoiRequest, SearchRequest, SearchResponse, SyncRequest,
+    WidgetEventRequest, WidgetEventResponse, GetWidgetRequest, GetWidgetResponse} from './commands';
 import {Event} from './event';
 import {Connection, Transport, TransportError} from './transport';
 
@@ -20,6 +21,7 @@ export interface UnrelatedError {
 export type ServerError = TransportError | UnrelatedError;
 
 export class Server {
+    jsonMessage: Event<any> = new Event();
     error: Event<ServerError> = new Event();
     allMessages: Event<AllMessagesResponse> = new Event();
     tasks: Event<CurrentTasksResponse> = new Event();
@@ -31,11 +33,13 @@ export class Server {
     private currentMessages: Message[] = [];
     private sentRequests: SentRequestsMap = new Map();
 
-    constructor(public transport: Transport) {}
+    constructor(public transport: Transport) {
+        this.jsonMessage.on((msg) => this.onMessage(msg));
+    }
 
     connect() {
         this.conn = this.transport.connect();
-        this.conn.jsonMessage.on((msg) => this.onMessage(msg));
+        this.conn.jsonMessage.on((msg) => this.jsonMessage.fire(msg));
         this.conn.error.on((msg) => this.error.fire(msg));
     }
 
@@ -46,6 +50,8 @@ export class Server {
     }
 
     send(req: InfoRequest): Promise<InfoResponse>;
+    send(req: GetWidgetRequest): Promise<GetWidgetResponse>;
+    send(req: WidgetEventRequest): Promise<WidgetEventResponse>;
     send(req: CompleteRequest): Promise<CompleteResponse>;
     send(req: SyncRequest): Promise<CommandResponse>;
     send(req: RoiRequest): Promise<CommandResponse>;
@@ -120,6 +126,17 @@ export class Server {
         }
     }
 
+    /** Creates a Transport that utilises the same Connection as this server (but without seq_num clashes).
+     * This is useful if you have a need for multiple `Server` objects using the same underlying lean process.
+     * This happens, for example, in the vscode extension where there is a Server instance in the InfoView
+     * and a Server instance in the extension.
+     */
+    makeProxyTransport(): Transport {
+        return {
+            connect : () => new ProxyConnection(this),
+        };
+    }
+
     private onMessage(msg: any) {
         if (this.logMessagesToConsole) {
             console.log('<= server: ', msg);
@@ -149,6 +166,37 @@ export class Server {
         } else {
             // unrelated error
             this.error.fire({error: 'unrelated', message: msg.message || JSON.stringify(msg)});
+        }
+    }
+}
+
+export class ProxyConnection implements Connection {
+    error: Event<TransportError> = new Event();
+    jsonMessage: Event<any> = new Event();
+    private subscriptions: Array<{dispose()}> = [];
+    constructor(private parent: Server) {
+        this.subscriptions.push(
+            this.error,
+            this.jsonMessage,
+            this.parent.jsonMessage.on((x) => x.seq_num || this.jsonMessage.fire(x)),
+            this.parent.error.on((x) =>
+                this.error.fire(x.error == 'unrelated' ? { ...x, error: 'connect' } : x)),
+        );
+    }
+    get alive() { return this.parent.alive(); }
+    async send(jsonMsg: any) {
+        const seq_num = jsonMsg.seq_num;
+        try {
+            const result = await this.parent.send(jsonMsg);
+            this.jsonMessage.fire({ ...result, seq_num })
+        } catch (msg) {
+            const res: ErrorResponse = { response: 'error', message: msg, seq_num };
+            this.jsonMessage.fire(res);
+        }
+    }
+    dispose() {
+        for (const s of this.subscriptions) {
+            s.dispose();
         }
     }
 }

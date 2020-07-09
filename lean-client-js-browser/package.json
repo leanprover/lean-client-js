@@ -1,7 +1,7 @@
 {
-  "name": "@bryangingechen/lean-client-js-browser",
-  "version": "1.4.0",
-  "description": "Fork of lean-client-js-browser: Interface to the Lean server",
+  "name": "lean-client-js-browser",
+  "version": "1.5.0",
+  "description": "Interface to the Lean server",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "unpkg": "dist/leanBrowser.js",
@@ -17,16 +17,10 @@
     "/dist/leanBrowser.js"
   ],
   "keywords": [],
-  "author": {
-    "name": "Bryan Gin-ge Chen",
-    "email": "bryangingechen@gmail.com"
-  },
-  "contributors": [
-    "Gabriel Ebner <gebner@gebner.org>"
-  ],
+  "author": "Gabriel Ebner <gebner@gebner.org>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bryangingechen/lean-client-js"
+    "url": "https://github.com/leanprover/lean-client-js"
   },
   "scripts": {
     "compile": "tsc -w -p ./"
@@ -37,6 +31,6 @@
     "@types/filesystem": "0.0.28",
     "@types/node": "=8.0.19",
     "browserfs": "^1.4.3",
-    "lean-client-js-core": "^1.2.12"
+    "lean-client-js-core": "^1.5.0"
   }
 }

@@ -18,6 +18,7 @@ export interface Message {
     severity: Severity;
     caption: string;
     text: string;
+    widget?: WidgetIdentifier;
 }
 
 export interface AllMessagesResponse extends Response {
@@ -91,6 +92,18 @@ export interface InfoRequest extends Request {
     column: number;
 }
 
+export interface GetWidgetRequest extends Request {
+    command: 'get_widget';
+    file_name: string;
+    line: number;
+    column: number;
+    /** The widget root component id. */
+    id: number;
+}
+export interface GetWidgetResponse extends CommandResponse {
+    widget: WidgetData;
+}
+
 export interface InfoSource {
     line: number;
     column: number;
@@ -98,6 +111,18 @@ export interface InfoSource {
 }
 
 export type GoalState = string;
+
+export interface WidgetIdentifier {
+    html?: WidgetComponent;
+    line: number;
+    column: number;
+    /** The widget root component id. */
+    id?: number;
+}
+
+export interface WidgetData extends WidgetIdentifier {
+    html: WidgetComponent;
+}
 
 export interface InfoRecord {
     'full-id'?: string;
@@ -107,6 +132,7 @@ export interface InfoRecord {
     source?: InfoSource;
     tactic_params?: string[];
     state?: GoalState;
+    widget?: WidgetIdentifier;
 }
 
 export interface InfoResponse extends CommandResponse {
@@ -210,4 +236,88 @@ export interface SleepRequest extends Request {
 
 export interface LongSleepRequest extends Request {
     command: 'long_sleep';
+}
+
+export type WidgetEffect =
+| {kind: 'insert_text'; text: string}
+| {kind: 'reveal_position'; file_name: string; line: number; column: number}
+| {kind: 'highlight_position'; file_name: string; line: number; column: number}
+| {kind: 'clear_highlighting'}
+| {kind: 'copy_text'; text:string}
+| {kind: 'custom'; key: string; value: string}
+
+export interface WidgetEventRecordSuccess {
+    status: 'success';
+    widget: WidgetData;
+    effects?: WidgetEffect[];
+}
+
+/** 3.15 ≤ lean.version ≤ 3.16 */
+export interface WidgetEventRecordEdit {
+    status: 'edit';
+    widget: WidgetData;
+    /** Some text to insert after the widget's comma. */
+    action: string;
+}
+
+export interface WidgetEventRecordInvalid {
+    status: 'invalid_handler';
+}
+export interface WidgetEventRecordError {
+    status: 'error';
+    message: string;
+}
+
+export type WidgetEventRecord =
+    | WidgetEventRecordSuccess
+    | WidgetEventRecordInvalid
+    | WidgetEventRecordEdit
+    | WidgetEventRecordError;
+
+export interface WidgetEventResponse extends CommandResponse {
+    record: WidgetEventRecord;
+}
+
+export interface WidgetEventHandler {
+    /** handler id */
+    h: number;
+    /** route */
+    r: number[];
+}
+
+export interface WidgetElement {
+    /** tag */
+    t: string;
+    /** children */
+    c: WidgetHtml[];
+    /** attributes */
+    a?: { [k: string]: any };
+    /** events */
+    e: {
+        'onClick'?: WidgetEventHandler;
+        'onMouseEnter'?: WidgetEventHandler;
+        'onMouseLeave'?: WidgetEventHandler;
+    };
+    /** tooltip */
+    tt?: WidgetHtml;
+}
+export interface WidgetComponent {
+    /** children */
+    c: WidgetHtml[];
+}
+export type WidgetHtml =
+    | WidgetComponent
+    | string
+    | WidgetElement
+    | null;
+
+export interface WidgetEventRequest extends Request {
+    command: 'widget_event';
+    kind: 'onClick' | 'onMouseEnter' | 'onMouseLeave' | 'onChange';
+    handler: WidgetEventHandler;
+    args: { type: 'unit' } | { type: 'string'; value: string };
+    file_name: string;
+    line: number;
+    column: number;
+    id?: number;
 }
