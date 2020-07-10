@@ -15,7 +15,9 @@ export interface Library {
     zipBuffer: Buffer;
     /**
      * From library.info.json, contains a map from Lean package names to
-     * URL prefixes that point to the Lean source of the olean files
+     * URL prefixes that point to the Lean source of the olean files.
+     *
+     * If library.info.json could not be loaded, then this will be undefined.
      */
     urls?: {};
 }
@@ -144,7 +146,6 @@ class InProcessConnection implements Connection {
 
 export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<any>): Promise<any> {
     if ((self as any).WebAssembly && urls.webassemblyJs && urls.webassemblyWasm) {
-        // Module.wasmBinaryFile = urls.webassemblyWasm; // deprecated!
         Module.locateFile = () => urls.webassemblyWasm;
         return loadJs(urls.webassemblyJs);
     } else if (urls.javascript) {
@@ -155,7 +156,6 @@ export function loadJsOrWasm(urls: LeanJsUrls, loadJs: (url: string) => Promise<
 }
 
 function loadInfoJson(infoUrl: string): Promise<string> {
-    // if this fails let's continue (we just won't be able to resolve lean files to github)
     return new Promise<string>((resolve, reject) => {
         const req = new XMLHttpRequest();
         req.responseType = 'text';
@@ -165,12 +165,12 @@ function loadInfoJson(infoUrl: string): Promise<string> {
                 resolve(req.responseText);
             } else {
                 console.log(`could not fetch ${infoUrl}: http code ${req.status} ${req.statusText}`);
-                resolve(null);
+                reject(`could not fetch ${infoUrl}: http code ${req.status} ${req.statusText}`);
             }
         };
         req.onerror = (e) => {
-            console.log(`error fetching ${infoUrl}: ${e}`);
-            resolve(null);
+            console.log(`error fetching ${infoUrl}`, e);
+            reject(e);
         };
         req.send();
     });
@@ -185,7 +185,9 @@ export function loadBufferFromURL(url: string, metaUrl: string, needUrls?: boole
             if (req.status === 200) {
                 if (needUrls) {
                     loadInfoJson(metaUrl).then((info) =>
-                        resolve({zipBuffer: new Buffer(req.response as ArrayBuffer), urls: JSON.parse(info)}));
+                        resolve({zipBuffer: new Buffer(req.response as ArrayBuffer), urls: JSON.parse(info)}),
+                        () => // infoJson could not be loaded, but we can still proceed
+                        resolve({zipBuffer: new Buffer(req.response as ArrayBuffer)}));
                 } else {
                     resolve({zipBuffer: new Buffer(req.response as ArrayBuffer)});
                 }
@@ -232,7 +234,7 @@ export function loadBufferFromURLCached(
             resolve(dbRequest.result);
         };
         dbRequest.onerror = (event) => {
-            console.log('failed to open indexedDB');
+            console.log('failed to open indexedDB', event, dbRequest.error);
             reject(dbRequest.error);
         };
         dbRequest.onupgradeneeded = (event) => {
@@ -254,7 +256,7 @@ export function loadBufferFromURLCached(
             resolve(trans.result);
         };
         trans.onerror = (event) => {
-            console.log(`error getting info.json for ${libKey} from cache`);
+            console.log(`error getting info.json for ${libKey} from cache`, event, trans.error);
             reject(trans.error);
         };
     }));
@@ -263,7 +265,7 @@ export function loadBufferFromURLCached(
         .then(([response, db, meta]) => {
             // TODO: better comparison between info.json and its cached version
             if (!meta || (meta !== response)) {
-                // cache miss
+                // *** CACHE MISS ***
                 // console.log('cache miss!');
                 return loadBufferFromURL(url, metaUrl).then((buff) => {
                         return new Promise<Library>((res, rej) => {
@@ -276,7 +278,7 @@ export function loadBufferFromURLCached(
                                 res({zipBuffer: buff.zipBuffer, urls: JSON.parse(response)});
                             };
                             trans.onerror = (event) => {
-                                console.log(`error saving ${libKey} to cache`, event);
+                                console.log(`error saving ${libKey} to cache`, event, trans.error);
                                 rej(trans.error);
                             };
                         });
@@ -291,12 +293,13 @@ export function loadBufferFromURLCached(
                             res(buff);
                         };
                         trans.onerror = (event) => {
-                            console.log(`error saving info.json for ${libKey} to cache`, event);
+                            console.log(`error saving info.json for ${libKey} to cache`, event, trans.error);
                             rej(trans.error);
                         };
                     }));
             }
-            // cache hit: pretend that the meta and library stores are always in sync
+            // *** CACHE HIT ***
+            // We pretend that the meta and library stores are always in sync
             return new Promise<Library>((res, rej) => {
                 // console.log('cache hit!');
                 const trans = db.transaction('library').objectStore('library')
@@ -306,13 +309,12 @@ export function loadBufferFromURLCached(
                     res({zipBuffer: new Buffer(trans.result), urls: JSON.parse(response)});
                 };
                 trans.onerror = (event) => {
-                    console.log(`error getting ${libKey} from cache`, event);
+                    console.log(`error getting ${libKey} from cache`, event, trans.error);
                     rej(trans.error);
                 };
             });
-        },
-        (reason) => {
-            console.log(`error in caching: ${reason}, falling back to uncached download`);
+        }).catch((reason) => {
+            console.log(`error in caching: falling back to uncached download`, reason);
             return loadBufferFromURL(url, metaUrl, true);
         });
 }
