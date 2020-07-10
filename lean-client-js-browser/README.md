@@ -37,9 +37,9 @@ Running `../node_modules/.bin/webpack` from this directory will build and output
 
 Once the files are built, you can check them out by starting a local web server (from the `dist/` directory) and navigating to `/index.html` or `/lib_test.html`.
 
-## Changes in vXXX
+## Changes in v2.0.0
 
-This version of `lean-client-js-browser` has two main differences from versions before vXXX:
+This version of `lean-client-js-browser` has two main differences from versions before v2.0.0:
 
 1. First, it removes the `BrowserInProcessTransport` class which allowed running the Lean Emscripten server in the browser's main thread. You must use `WebWorkerTransport`, which runs the server in a WebWorker.
 
