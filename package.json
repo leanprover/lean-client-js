@@ -7,6 +7,7 @@
     "lint": "tslint -c tslint.json 'lean-client-js-*/src/**/*.ts' lean-client-js-browser/demo.ts",
     "bootstrap": "lerna bootstrap",
     "compile": "lerna run --stream --no-sort --concurrency 9999 compile",
+    "prePublishOnly": "lerna run build",
     "demo": "cd lean-client-js-browser && webpack-dev-server",
     "node-demo": "ts-node -P lean-client-js-node/ lean-client-js-node/demo.ts"
   },

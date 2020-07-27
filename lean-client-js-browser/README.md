@@ -33,7 +33,7 @@ See [these Observable notebooks](https://observablehq.com/collection/@bryanginge
 
 To build the demo file, follow the directions in the README file in the parent package `lean-client-js`. The demo file will be written to `dist/demo.html`.
 
-Running `../node_modules/.bin/webpack` from this directory will build and output the test file `dist/lib_test.html` as well as a UMD module `dist/leanBrowser.js` for use in webpages.
+Running `../node_modules/.bin/webpack` or `npm run build` from this directory will build and output the test file `dist/lib_test.html` as well as a UMD module `dist/leanBrowser.js` for use in webpages.
 
 Once the files are built, you can check them out by starting a local web server (from the `dist/` directory) and navigating to `/index.html` or `/lib_test.html`.
 

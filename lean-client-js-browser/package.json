@@ -23,7 +23,8 @@
     "url": "https://github.com/leanprover/lean-client-js"
   },
   "scripts": {
-    "compile": "tsc -w -p ./"
+    "compile": "tsc -w -p ./",
+    "build": "tsc -p ./ && ../node_modules/.bin/webpack"
   },
   "license": "Apache-2.0",
   "dependencies": {
