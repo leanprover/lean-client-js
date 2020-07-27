@@ -4,6 +4,18 @@
   "description": "Interface to the Lean server",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "unpkg": "dist/leanBrowser.js",
+  "jsdelivr": "dist/leanBrowser.js",
+  "files": [
+    "/lib/*",
+    "/src/*",
+    "/demo.ts",
+    "/lib_test.html",
+    "/README.md",
+    "/tsconfig.json",
+    "/webpack.config.js",
+    "/dist/leanBrowser.js"
+  ],
   "keywords": [],
   "author": "Gabriel Ebner <gebner@gebner.org>",
   "repository": {
@@ -11,7 +23,8 @@
     "url": "https://github.com/leanprover/lean-client-js"
   },
   "scripts": {
-    "compile": "tsc -w -p ./"
+    "compile": "tsc -w -p ./",
+    "build": "tsc -p ./ && ../node_modules/.bin/webpack"
   },
   "license": "Apache-2.0",
   "dependencies": {

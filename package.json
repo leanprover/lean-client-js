@@ -7,6 +7,7 @@
     "lint": "tslint -c tslint.json 'lean-client-js-*/src/**/*.ts' lean-client-js-browser/demo.ts",
     "bootstrap": "lerna bootstrap",
     "compile": "lerna run --stream --no-sort --concurrency 9999 compile",
+    "prePublishOnly": "lerna run build",
     "demo": "cd lean-client-js-browser && webpack-dev-server",
     "node-demo": "ts-node -P lean-client-js-node/ lean-client-js-node/demo.ts"
   },
@@ -18,18 +19,16 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-loader": "^7.1.2",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.6.1",
+    "copy-webpack-plugin": "^4.6.0",
     "html-webpack-plugin": "^2.30.1",
-    "lerna": "^2.9.0",
+    "lerna": "^3.14.1",
+    "terser-webpack-plugin-legacy": "^1.2.3",
     "ts-loader": "^3.5.0",
     "ts-node": "^4.1.0",
     "tslint": "^5.9.1",
     "typescript": "2.7.1",
     "webpack": "^3.11.0",
-    "webpack-dev-server": "^2.11.1",
+    "webpack-dev-server": "^2.11.5",
     "worker-loader": "^1.1.0"
   }
 }

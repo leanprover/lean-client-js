@@ -1,6 +1,7 @@
 import {Connection, Event, Transport, TransportError} from 'lean-client-js-core';
-import {LeanJsOpts} from './inprocess';
-import {ErrorRes, Req, Res, StartWorkerReq} from './webworkertypes';
+import {LeanJsOpts} from './inprocesstypes';
+import Worker from './webworkerscript';
+import {Res, StartWorkerReq} from './webworkertypes';
 
 export class WebWorkerTransport implements Transport {
     opts: LeanJsOpts;
@@ -10,7 +11,7 @@ export class WebWorkerTransport implements Transport {
     }
 
     connect(): WebWorkerConnection {
-        const worker = new (require('worker-loader!./webworkerscript'))();
+        const worker = new Worker();
         worker.postMessage({
             command: 'start-webworker',
             opts: this.opts,
@@ -18,16 +19,17 @@ export class WebWorkerTransport implements Transport {
         const conn = new WebWorkerConnection(worker);
         worker.onmessage = (e) => {
             const res = e.data as Res;
-            switch (res.response) {
-                case 'error': conn.error.fire((res as ErrorRes).error); break;
-                default: conn.jsonMessage.fire(res);
-            }
+            // Pass all messages (including errors) back to the server object
+            // jsonMessage has some error handling already
+            conn.jsonMessage.fire(res);
         };
         return conn;
     }
 }
 
 export class WebWorkerConnection implements Connection {
+    // TODO: type issue here; not all errors are TransportErrors
+    // try e.g. server.info() with a missing file
     error: Event<TransportError> = new Event();
     jsonMessage: Event<any> = new Event();
     alive: boolean = true;

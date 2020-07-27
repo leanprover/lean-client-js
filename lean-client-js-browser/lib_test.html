@@ -1,18 +1,22 @@
-import * as lean from './src';
-
-window.onload = () => {
-    const p = document.createElement('p');
-    p.innerText = 'Look at the output in the console.';
-    document.body.appendChild(p);
-
-    // const prefix = window.location.origin;
-    const prefix = '.';
-    const opts: lean.LeanJsOpts = {
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>leanBrowser.js bundle test</title>
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/d3-require@1"></script>
+    <script>
+    // must use absolute URL since worker script is inlined in leanBrowser.js
+    const prefix = window.location.origin;
+    d3.require("./leanBrowser.js").then((lean) => {
+      window.lean = lean;
+      const opts = {
         // javascript: 'https://leanprover.github.io/lean.js/lean3.js',
-        javascript: prefix + '/lean_js_js.js',
-        webassemblyJs: prefix + '/lean_js_wasm.js',
-        webassemblyWasm: prefix + '/lean_js_wasm.wasm',
-        libraryZip: prefix + '/library.zip',
+        javascript: prefix+'/lean_js_js.js',
+        webassemblyJs: prefix+'/lean_js_wasm.js',
+        webassemblyWasm: prefix+'/lean_js_wasm.wasm',
+        libraryZip: prefix+'/library.zip',
         // Uncomment to test optional fields
         // libraryMeta: prefix + '/library.info.json',
         // libraryOleanMap: prefix + '/library.olean_map.json',
@@ -24,10 +28,9 @@ window.onload = () => {
     const server = new lean.Server(transport);
     server.error.on((err) => console.log('error:', err));
     server.allMessages.on((allMessages) => console.log('messages:', allMessages.msgs));
-     // emscripten lean never fires 'tasks' (requires MULTI_THREAD)
     server.tasks.on((currentTasks) => console.log('tasks:', currentTasks.tasks));
 
-    (self as any).server = server; // allow debugging from the console
+    window.server = server; // allow debugging from the console
 
     server.connect();
 
@@ -48,4 +51,8 @@ window.onload = () => {
     server.info('test.lean', 3, 0)
         .then((res) => console.log(`got info: ${JSON.stringify(res)}`))
         .catch((err) => console.log('error while getting info:', err));
-};
+    });
+    </script>
+    Check the console output; you can also play with the <code>lean</code> and <code>server</code> objects.
+  </body>
+</html>

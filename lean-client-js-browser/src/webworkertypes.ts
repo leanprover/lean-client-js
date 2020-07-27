@@ -1,5 +1,5 @@
 import {Request, Response, TransportError} from 'lean-client-js-core';
-import {LeanJsOpts} from './inprocess';
+import {LeanJsOpts} from './inprocesstypes';
 
 export interface StartWorkerReq {
     command: 'start-webworker';
