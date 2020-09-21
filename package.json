@@ -28,7 +28,7 @@
     "tslint": "^5.9.1",
     "typescript": "2.7.1",
     "webpack": "^3.11.0",
-    "webpack-dev-server": "^2.11.5",
+    "webpack-dev-server": "^3.1.11",
     "worker-loader": "^1.1.0"
   }
 }
