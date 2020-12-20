@@ -27,7 +27,9 @@ const documents = new TextDocuments();
 documents.listen(connection);
 
 connection.onInitialize((params): InitializeResult => {
-    server.transport = new ProcessTransport('lean', params.rootPath, []);
+    const extraArgs = process.argv.indexOf('--');
+    const argv = extraArgs === -1 ? [] : process.argv.slice(extraArgs + 1)
+    server.transport = new ProcessTransport('lean', params.rootPath, argv);
     server.connect();
     sendRoi();
     return {
