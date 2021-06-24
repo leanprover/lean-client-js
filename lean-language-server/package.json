@@ -23,5 +23,8 @@
     "lean-client-js-node": "^2.0.1",
     "vscode-languageserver": "^3.5.0",
     "vscode-uri": "^1.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.3.4"
   }
 }
