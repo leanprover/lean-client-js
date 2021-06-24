@@ -1,6 +1,6 @@
 {
   "name": "lean-language-server",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Language Server Protocol server for Lean",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -20,7 +20,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@types/node": "^9.4.6",
-    "lean-client-js-node": "^2.0.1",
+    "lean-client-js-node": "^2.0.4",
     "vscode-languageserver": "^3.5.0",
     "vscode-uri": "^1.0.1"
   },
