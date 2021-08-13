@@ -204,4 +204,22 @@ connection.onHover((params): Promise<Hover> => {
     });
 });
 
+connection.onRequest('$/lean/discoverWidget', async params => {
+    const fileName = URI.parse(params.textDocument.uri).fsPath;
+    const position = params.position;
+    const info = await server.info(
+        fileName, position.line + 1, position.character,
+    );
+    if (!info.record || !info.record.widget) { return {}; }
+    const widget_info = info.record.widget;
+    const widget = await server.send({
+        command: 'get_widget',
+        file_name: fileName,
+        line: widget_info.line,
+        column: widget_info.column,
+        id: widget_info.id,
+    });
+    return {widget: widget.widget};
+});
+
 connection.listen();
