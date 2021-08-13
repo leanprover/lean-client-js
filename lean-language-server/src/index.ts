@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import {Message, ProcessTransport, Server, Severity} from 'lean-client-js-node';
 import {CompletionItem, CompletionItemKind, createConnection, Definition, Diagnostic, DiagnosticSeverity, Hover,
-    IConnection, InitializeParams, InitializeResult, Location, MarkedString, Position, Range, ResponseError,
-    TextDocument, TextDocumentPositionParams, TextDocuments, TextDocumentSyncKind} from 'vscode-languageserver';
-import Uri from 'vscode-uri';
+    InitializeParams, InitializeResult, Location, MarkedString, Position, ProposedFeatures, Range, ResponseError,
+    TextDocumentPositionParams, TextDocuments, TextDocumentSyncKind} from 'vscode-languageserver/node';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { URI } from 'vscode-uri';
 
 const connection = createConnection();
 
@@ -23,7 +24,7 @@ server.error.on((err) => {
     }
 });
 
-const documents = new TextDocuments();
+const documents = new TextDocuments(TextDocument);
 documents.listen(connection);
 
 connection.onInitialize((params): InitializeResult => {
@@ -34,7 +35,7 @@ connection.onInitialize((params): InitializeResult => {
     sendRoi();
     return {
         capabilities: {
-            textDocumentSync: documents.syncKind,
+            textDocumentSync: TextDocumentSyncKind.Full,
             completionProvider: {},
             definitionProvider: true,
             hoverProvider: true,
@@ -45,13 +46,13 @@ connection.onInitialize((params): InitializeResult => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change) => {
-    server.sync(Uri.parse(change.document.uri).fsPath, change.document.getText());
+    server.sync(URI.parse(change.document.uri).fsPath, change.document.getText());
 });
 
 function sendRoi() {
     server.roi('visible-files',
         documents.keys().map((uri) =>
-            ({file_name: Uri.parse(uri).fsPath,
+            ({file_name: URI.parse(uri).fsPath,
               ranges: [{begin_line: 0, end_line: Math.pow(2, 31)}]})));
 }
 
@@ -99,7 +100,7 @@ server.allMessages.on((messages) => {
     for (const message of messages.msgs) {
         const line = Math.max(message.pos_line - 1, 0);
         const range = Range.create(line, message.pos_col, line, message.pos_col);
-        const diagnostics = diagnosticMap.get(Uri.file(message.file_name).toString());
+        const diagnostics = diagnosticMap.get(URI.file(message.file_name).toString());
         if (diagnostics) {
             diagnostics.push({
                 range,
@@ -114,7 +115,7 @@ server.allMessages.on((messages) => {
 });
 
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> => {
-    const fileName = Uri.parse(textDocumentPosition.textDocument.uri).fsPath;
+    const fileName = URI.parse(textDocumentPosition.textDocument.uri).fsPath;
     const position = textDocumentPosition.position;
     return server.complete(fileName, position.line + 1, position.character).then((message) => {
         return !message.completions ? [] : message.completions.map((completion) => {
@@ -139,12 +140,12 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Prom
 });
 
 connection.onDefinition(((params): Promise<Definition[]> => {
-    const fileName = Uri.parse(params.textDocument.uri).fsPath;
+    const fileName = URI.parse(params.textDocument.uri).fsPath;
     const position = params.position;
     return server.info(fileName, position.line + 1, position.character).then((response) => {
         if (response.record && response.record.source) {
             const src = response.record.source;
-            const uri = src.file ? Uri.file(src.file).toString() : params.textDocument.uri;
+            const uri = src.file ? URI.file(src.file).toString() : params.textDocument.uri;
             const pos = Position.create(src.line - 1, src.column);
             return [Location.create(uri, Range.create(pos, pos))];
         } else {
@@ -154,7 +155,7 @@ connection.onDefinition(((params): Promise<Definition[]> => {
 }) as any);
 
 connection.onHover((params): Promise<Hover> => {
-    const fileName = Uri.parse(params.textDocument.uri).fsPath;
+    const fileName = URI.parse(params.textDocument.uri).fsPath;
     const position = params.position;
     return server.info(fileName, position.line + 1, position.character).then((response) => {
         const marked: MarkedString[] = [];
