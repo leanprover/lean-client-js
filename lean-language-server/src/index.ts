@@ -1,8 +1,22 @@
 #!/usr/bin/env node
-import {Message, ProcessTransport, Server, Severity} from 'lean-client-js-node';
-import {CompletionItem, CompletionItemKind, createConnection, Definition, Diagnostic, DiagnosticSeverity, Hover,
-    InitializeParams, InitializeResult, Location, MarkedString, Position, ProposedFeatures, Range, ResponseError,
-    TextDocumentPositionParams, TextDocuments, TextDocumentSyncKind} from 'vscode-languageserver/node';
+import { ProcessTransport, Server, Severity } from 'lean-client-js-node';
+import {
+    CompletionItem,
+    CompletionItemKind,
+    Definition,
+    Diagnostic,
+    DiagnosticSeverity,
+    Hover,
+    InitializeResult,
+    Location,
+    MarkedString,
+    Position,
+    Range,
+    TextDocumentPositionParams,
+    TextDocumentSyncKind,
+    TextDocuments,
+    createConnection,
+} from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
 
