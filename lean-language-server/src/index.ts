@@ -172,11 +172,12 @@ connection.onHover((params): Promise<Hover> => {
     const fileName = URI.parse(params.textDocument.uri).fsPath;
     const position = params.position;
     return server.info(fileName, position.line + 1, position.character).then((response) => {
-        const marked: MarkedString[] = [];
         const record = response.record;
         if (!record) {
             return {contents: []};
         }
+
+        const marked: MarkedString[] = [];
         const name = record['full-id'] || record.text;
         if (name) {
             if (response.record.tactic_params) {
@@ -194,13 +195,34 @@ connection.onHover((params): Promise<Hover> => {
         if (response.record.doc) {
             marked.push(response.record.doc);
         }
-        if (response.record.state) {
-            marked.push({language: 'lean', value: record.state});
-        }
         return {
             contents: marked,
             range: Range.create(position, position),
         } as Hover;
+    });
+});
+
+/* See https://github.com/leanprover/lean4/blob/f1b4d9a1930b530ae4ace1247b0b1324128e277c/src/Lean/Data/Lsp/Extra.lean#L55-L58
+ */
+interface PlainGoalResponse {
+  rendered: '';
+  goals: String[];
+}
+
+function upconvertToLean4PlainGoal(goalState: String): PlainGoalResponse {
+    // strip 'N goals' from the front (which is present for multiple goals)
+    const withoutCount = goalState.replace(/^\d+ goals?\n/, '');
+    const goals = withoutCount.split(/(?<=^⊢ [^]*?\n)\n/m)
+    return {rendered: '', goals: goals.map(each => each.trim())};
+}
+
+connection.onRequest('$/lean/plainGoal', async params => {
+    const fileName = URI.parse(params.textDocument.uri).fsPath;
+    const position = params.position;
+    return server.info(fileName, position.line + 1, position.character).then((response) => {
+        const record = response.record;
+        if (!record || !record.state) { return {}; }
+        return upconvertToLean4PlainGoal(record.state.trim());
     });
 });
 
