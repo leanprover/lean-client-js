@@ -16,6 +16,7 @@ import {
     TextDocumentSyncKind,
     TextDocuments,
     createConnection,
+    VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
@@ -127,6 +128,48 @@ server.allMessages.on((messages) => {
         connection.sendDiagnostics({uri, diagnostics});
     });
 });
+
+export interface LeanFileProgressProcessingInfo {
+    /** Range which is still being processed */
+    range: Range;
+}
+export interface LeanFileProgressParams {
+    /** The text document to which this progress notification applies. */
+    textDocument: VersionedTextDocumentIdentifier;
+    /**
+     * Array containing the parts of the file which are still being processed.
+     * The array should be empty if and only if the server is finished processing.
+     */
+    processing: LeanFileProgressProcessingInfo[];
+}
+
+let filesInProgress: string[] = [];
+server.tasks.on((tasks) => {
+    const newProgress: {[fileName: string]: LeanFileProgressProcessingInfo[]} = {};
+    for (const task of tasks.tasks) {
+        newProgress[task.file_name] ||= [];
+        newProgress[task.file_name].push({
+            range: Range.create(Position.create(task.pos_line-1, task.pos_col),
+                Position.create(task.end_pos_line-1, task.end_pos_col)),
+        });
+    }
+
+    for (const oldFile of filesInProgress) {
+        newProgress[oldFile] ||= [];
+    }
+
+    filesInProgress = [];
+    for (const fileName in newProgress) {
+        if (newProgress[fileName].length) {
+            filesInProgress.push(fileName);
+        }
+        const params: LeanFileProgressParams = {
+            textDocument: {version: 0, uri: URI.file(fileName).toString()},
+            processing: newProgress[fileName],
+        };
+        connection.sendNotification('$/lean/fileProgress', params);
+    }
+})
 
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> => {
     const fileName = URI.parse(textDocumentPosition.textDocument.uri).fsPath;
