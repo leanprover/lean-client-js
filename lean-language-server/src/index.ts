@@ -253,7 +253,8 @@ interface PlainGoalResponse {
 }
 
 function upconvertToLean4PlainGoal(goalState: String): PlainGoalResponse {
-    // strip 'N goals' from the front (which is present for multiple goals)
+    // strip 'N goals' from the front (which is present for 0 or 2+ goals)
+    if (goalState === 'no goals') { return { rendered: '', goals: [] } };
     const withoutCount = goalState.replace(/^\d+ goals?\n/, '');
     const goals = withoutCount.split(/(?<=^⊢ [^]*?\n)\n/m)
     return {rendered: '', goals: goals.map(each => each.trim())};
