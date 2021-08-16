@@ -287,4 +287,19 @@ connection.onRequest('$/lean/discoverWidget', async params => {
     return {widget: widget.widget};
 });
 
+connection.onRequest('$/lean/widgetEvent', async params => {
+    const widget = params.widget;
+    const response = await server.send({
+        command: 'widget_event',
+        kind: params.kind,
+        handler: params.handler,
+        args: params.args,
+        file_name: URI.parse(params.textDocument.uri).fsPath,
+        line: widget.line,
+        column: widget.column,
+        id: widget.id,
+    });
+    return response;
+});
+
 connection.listen();
