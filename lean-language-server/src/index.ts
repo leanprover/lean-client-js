@@ -12,11 +12,14 @@ import {
     MarkedString,
     Position,
     Range,
+    SymbolInformation,
+    SymbolKind,
     TextDocumentPositionParams,
     TextDocumentSyncKind,
     TextDocuments,
     createConnection,
     VersionedTextDocumentIdentifier,
+    WorkspaceSymbolParams,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
@@ -54,6 +57,7 @@ connection.onInitialize((params): InitializeResult => {
             completionProvider: {},
             definitionProvider: true,
             hoverProvider: true,
+            workspaceSymbolProvider: true,
         },
     };
 });
@@ -244,6 +248,28 @@ connection.onHover((params): Promise<Hover> => {
         } as Hover;
     });
 });
+
+connection.onWorkspaceSymbol(async (params: WorkspaceSymbolParams): Promise<SymbolInformation[]> => {
+        const response = await server.search(params.query);
+        return response.results
+            .filter((item) => item.source && item.source.file &&
+                item.source.line && item.source.column)
+            .map((item) => {
+                const loc = {
+                    uri: URI.file(item.source.file).toString(),
+                    range: Range.create(
+                        Position.create(item.source.line - 1, item.source.column),
+                        Position.create(item.source.line - 1, item.source.column + 1),
+                    )
+                }
+                return {
+                    name: item.text,
+                    kind: SymbolKind.Function,
+                    type: item.type,
+                    location: loc};
+                });
+    }
+)
 
 /* See https://github.com/leanprover/lean4/blob/f1b4d9a1930b530ae4ace1247b0b1324128e277c/src/Lean/Data/Lsp/Extra.lean#L55-L58
  */
