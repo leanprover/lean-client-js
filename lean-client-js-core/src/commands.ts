@@ -139,6 +139,20 @@ export interface InfoResponse extends CommandResponse {
     record?: InfoRecord;
 }
 
+export interface SymbolRequest extends Request {
+    command: 'symbols';
+    file_name: string;
+}
+
+export interface SymbolItem {
+    source?: InfoSource;
+    name: string;
+}
+
+export interface SymbolResponse extends CommandResponse {
+    results: SymbolItem[];
+}
+
 /** Experimental API, >=3.1.1 */
 export interface SearchRequest extends Request {
     command: 'search';
