@@ -91,6 +91,10 @@ export class Server {
             skip_completions: skipCompletions || false});
     }
 
+    symbols(file_name: string): Promise<SymbolResponse> {
+        return this.send({command: 'symbols', file_name});
+    }
+
     search(query: string): Promise<SearchResponse> {
         return this.send({command: 'search', query});
     }
