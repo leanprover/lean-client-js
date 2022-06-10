@@ -74,15 +74,13 @@ export interface CompleteRequest extends Request {
 }
 
 export declare type SymbolKind
-    = 'axiom'
-    | 'const'
-    | 'constructor'
-    | 'field'
-    | 'class'
+    = 'class'
+    | 'definition'
+    | 'meta'
     | 'inductive'
     | 'instance'
+    | 'structure'
     | 'theorem'
-    | 'definition'
 
 export interface CompletionCandidate {
     type?: string;
