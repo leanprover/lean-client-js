@@ -73,10 +73,20 @@ export interface CompleteRequest extends Request {
     skip_completions?: boolean;
 }
 
+export declare type SymbolKind
+    = 'class'
+    | 'definition'
+    | 'meta'
+    | 'inductive'
+    | 'instance'
+    | 'structure'
+    | 'theorem'
+
 export interface CompletionCandidate {
     type?: string;
     tactic_params?: string[];
     text: string;
+    kind?: SymbolKind;
     doc?: string;
 }
 
@@ -149,6 +159,7 @@ export interface SearchItem {
     source?: InfoSource;
     text: string;
     type: string;
+    kind?: SymbolKind;
     doc?: string;
 }
 
