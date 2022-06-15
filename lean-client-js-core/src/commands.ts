@@ -154,19 +154,11 @@ export interface SymbolRequest extends Request {
     file_name: string;
 }
 
-export declare type SymbolKind
-    = 'constructor'
-    | 'field'
-    | 'class'
-    | 'inductive'
-    | 'instance'
-    | 'def'
-    | 'theorem'
-
 export interface SymbolItem {
     source?: InfoSource;
     name: string;
     name_parts: string[];
+    type: string;
     kind: SymbolKind;
 }
 
