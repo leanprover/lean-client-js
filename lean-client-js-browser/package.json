@@ -1,6 +1,6 @@
 {
   "name": "lean-client-js-browser",
-  "version": "3.0.0",
+  "version": "3.3.0",
   "description": "Interface to the Lean server",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -32,6 +32,6 @@
     "@types/filesystem": "0.0.28",
     "@types/node": "=8.0.19",
     "browserfs": "^1.4.3",
-    "lean-client-js-core": "^3.0.0"
+    "lean-client-js-core": "^3.3.0"
   }
 }
