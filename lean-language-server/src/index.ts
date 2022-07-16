@@ -117,8 +117,13 @@ server.allMessages.on((messages) => {
     }
 
     for (const message of messages.msgs) {
-        const line = Math.max(message.pos_line - 1, 0);
-        const range = Range.create(line, message.pos_col, line, message.pos_col);
+        const start_line = Math.max(message.pos_line - 1, 0);
+        const end_line = Math.max(message.end_pos_line - 1, 0);
+        const start_pos = Position.create(start_line, message.pos_col)
+        const end_pos = message.end_pos_col !== undefined
+            ? Position.create(end_line, message.end_pos_col)
+            : start_pos
+        const range = Range.create(start_pos, end_pos);
         const diagnostics = diagnosticMap.get(URI.file(message.file_name).toString());
         if (diagnostics) {
             diagnostics.push({
