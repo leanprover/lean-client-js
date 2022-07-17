@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { SymbolKind as LeanSymbolKind } from 'lean-client-js-core';
 import { ProcessTransport, Server, Severity } from 'lean-client-js-node';
 import {
     CompletionItem,
@@ -6,6 +7,8 @@ import {
     Definition,
     Diagnostic,
     DiagnosticSeverity,
+    DocumentSymbol,
+    DocumentSymbolParams,
     Hover,
     InitializeResult,
     Location,
@@ -57,6 +60,7 @@ connection.onInitialize((params): InitializeResult => {
             completionProvider: {},
             definitionProvider: true,
             hoverProvider: true,
+            documentSymbolProvider: true,
             workspaceSymbolProvider: true,
         },
     };
@@ -187,7 +191,7 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Prom
         return !message.completions ? [] : message.completions.map((completion) => {
             const item: CompletionItem = {
                 label: completion.text,
-                kind: CompletionItemKind.Function,
+                kind: toCompletionItemKind(completion.kind),
                 documentation: completion.doc,
                 detail: completion.tactic_params ?
                     completion.tactic_params.join(' ') :
@@ -254,25 +258,101 @@ connection.onHover((params): Promise<Hover> => {
     });
 });
 
+function toCompletionItemKind (s?: LeanSymbolKind): CompletionItemKind {
+    switch (s) {
+        case undefined: return CompletionItemKind.Function;  // for older lean servers
+        case 'meta': return CompletionItemKind.Event;
+        case 'class': return CompletionItemKind.Interface;
+        case 'definition': return CompletionItemKind.Field;
+        case 'inductive': return CompletionItemKind.Enum;
+        case 'instance': return CompletionItemKind.Constant;
+        case 'structure': return CompletionItemKind.Class;
+        case 'theorem': return CompletionItemKind.Function;
+        default: return CompletionItemKind.Value;
+    }
+}
+
+function toSymbolKind (s?: LeanSymbolKind): SymbolKind {
+    switch (s) {
+        case undefined: return SymbolKind.Function;  // for older lean servers
+        case 'meta': return SymbolKind.Event;
+        case 'class': return SymbolKind.Interface;
+        case 'definition': return SymbolKind.Field;
+        case 'inductive': return SymbolKind.Enum;
+        case 'instance': return SymbolKind.Constant;
+        case 'structure': return SymbolKind.Class;
+        case 'theorem': return SymbolKind.Function;
+        default: return SymbolKind.Object;
+    }
+}
+
+connection.onDocumentSymbol(async (params: DocumentSymbolParams): Promise<DocumentSymbol[]> => {
+    // See https://github.com/leanprover/vscode-lean/blob/60c43bba6943879ecc198acb69d27f1b60c9d322/src/symbol.ts#L15
+    const fileName = URI.parse(params.textDocument.uri).fsPath;
+    const response = await server.symbols(fileName);
+    const infos : DocumentSymbol[] = [];
+
+    let stack : DocumentSymbol[] = [];
+
+    for (const item of response.results) {
+        if (!(item.source && item.source.file && item.source.line && item.source.column)) continue;
+
+        const range = Range.create(
+            Position.create(item.source.line - 1, item.source.column),
+            Position.create(item.source.line - 1, item.source.column + 1),
+        )
+
+        // Pop as much stack as necessary
+        let i = 0;
+        for (; i < item.name_parts.length && i < stack.length; i++) {
+            if (stack[i].name !== item.name_parts[i]) {
+                break
+            }
+        }
+        stack = stack.slice(0, i);
+        for (; i < item.name_parts.length; i++) {
+            const curr : DocumentSymbol = {
+                name: item.name_parts[i],
+                detail: null,
+                kind: SymbolKind.Namespace,
+                range: range,
+                selectionRange: range,
+                children: [],
+            };
+            if (i > 0) {
+                stack[i - 1].children.push(curr)
+            }
+            else {
+                infos.push(curr);
+            }
+            stack.push(curr)
+        }
+
+        stack[stack.length-1].kind = toSymbolKind(item.kind);
+        stack[stack.length-1].detail = item.kind;
+    }
+    return infos;
+});
+
 connection.onWorkspaceSymbol(async (params: WorkspaceSymbolParams): Promise<SymbolInformation[]> => {
-        const response = await server.search(params.query);
-        return response.results
-            .filter((item) => item.source && item.source.file &&
-                item.source.line && item.source.column)
-            .map((item) => {
-                const loc = {
-                    uri: URI.file(item.source.file).toString(),
-                    range: Range.create(
-                        Position.create(item.source.line - 1, item.source.column),
-                        Position.create(item.source.line - 1, item.source.column + 1),
-                    )
-                }
-                return {
-                    name: item.text,
-                    kind: SymbolKind.Function,
-                    type: item.type,
-                    location: loc};
-                });
+    const response = await server.search(params.query);
+    return response.results
+        .filter((item) => item.source && item.source.file &&
+            item.source.line && item.source.column)
+        .map((item) => {
+            const loc = {
+                uri: URI.file(item.source.file).toString(),
+                range: Range.create(
+                    Position.create(item.source.line - 1, item.source.column),
+                    Position.create(item.source.line - 1, item.source.column + 1),
+                )
+            }
+            return {
+                name: item.text,
+                kind: toSymbolKind(item.kind),
+                type: item.type,
+                location: loc};
+            });
     }
 )
 
