@@ -109,7 +109,7 @@ export class InProcessTransport implements Transport {
             const BrowserFS = new FS();
             BrowserFS.initialize(libraryFS);
             const BFS = new EmscriptenFS(Module.FS, Module.PATH, Module.ERRNO_CODES, BrowserFS);
-            Module.FS.createFolder(Module.FS.root, 'library', true, true);
+            (Module.FS.mkdir || Module.FS.createFolder)(Module.FS.root, 'library', true, true);
             Module.FS.mount(BFS, {root: '/'}, '/library');
             this.info = library.urls;
         }
