@@ -1,6 +1,6 @@
 {
   "name": "lean-client-js-browser",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "Interface to the Lean server",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
