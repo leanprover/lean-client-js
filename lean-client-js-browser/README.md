@@ -46,3 +46,4 @@ This version of `lean-client-js-browser` has two main differences from versions 
 2. Second, it caches the `library.zip` file in the browser's IndexedDB store. The database name is determined by `opts.dbName`. This DB contains two "Object stores", one named `library` and one named `meta`:
   - `meta` is a key-value store, where the key used is given by `opts.libName` and the values are JSON objects which map the Lean package names in the ZIP file to source links
   - `library` is another key-value store, where the keys are the same as in `meta` and the values are the ZIP files stored as binary blobs.
+
